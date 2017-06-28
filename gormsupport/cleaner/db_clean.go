@@ -3,8 +3,8 @@ package cleaner
 import (
 	"database/sql"
 
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-common/log"
+	"github.com/fabric8-services/fabric8-common/workitem"
 	uuid "github.com/satori/go.uuid"
 
 	"fmt"
