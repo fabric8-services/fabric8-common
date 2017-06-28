@@ -3,7 +3,7 @@ package gormsupport
 import (
 	"time"
 
-	"github.com/almighty/almighty-core/convert"
+	"github.com/fabric8-services/fabric8-common/convert"
 	"github.com/jinzhu/gorm"
 )
 
