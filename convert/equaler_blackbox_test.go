@@ -3,8 +3,8 @@ package convert_test
 import (
 	"testing"
 
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/fabric8-services/fabric8-common/convert"
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/stretchr/testify/assert"
 )
 
