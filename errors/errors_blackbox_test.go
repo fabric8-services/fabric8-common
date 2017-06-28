@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/fabric8-services/fabric8-common/errors"
+	"github.com/fabric8-services/fabric8-common/resource"
 	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
