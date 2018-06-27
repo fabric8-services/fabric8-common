@@ -17,8 +17,45 @@ var (
 	reqSize     *prometheus.HistogramVec
 )
 
-func registerMetrics(service string) {
+// BucketOption a function to configure a given buckets config
+type BucketOption func(c bucketsConfig)
+
+// WithRequestDurationBucket configures the bucket for the `request duration` metrics
+func WithRequestDurationBucket(bucket []float64) BucketOption {
+	return func(c bucketsConfig) {
+		c.reqDuration = bucket
+	}
+}
+
+// WithRequestSizeBucket configures the bucket for the `request size` metrics
+func WithRequestSizeBucket(bucket []float64) BucketOption {
+	return func(c bucketsConfig) {
+		c.reqSize = bucket
+	}
+}
+
+// WithResponseSizeBucket configures the bucket for the `response size` metrics
+func WithResponseSizeBucket(bucket []float64) BucketOption {
+	return func(c bucketsConfig) {
+		c.resSize = bucket
+	}
+}
+
+type buckets []float64
+
+type bucketsConfig struct {
+	reqDuration buckets
+	reqSize     buckets
+	resSize     buckets
+}
+
+func registerMetrics(service string, opts ...BucketOption) {
 	subsystem = service
+	buckets := bucketsConfig{
+		reqDuration: prometheus.ExponentialBuckets(0.05, 2, 8),
+		reqSize:     []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
+		resSize:     []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
+	}
 	reqCnt = register(
 		prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -36,21 +73,10 @@ func registerMetrics(service string) {
 				Subsystem: subsystem,
 				Name:      "request_duration_seconds",
 				Help:      "Bucketed histogram of processing time (s) of requests.",
-				Buckets:   prometheus.ExponentialBuckets(0.05, 2, 8),
+				Buckets:   buckets.reqDuration,
 			},
 			reqLabels),
 		"request_duration_seconds").(*prometheus.HistogramVec)
-	resSize = register(
-		prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{
-				Namespace: namespace,
-				Subsystem: subsystem,
-				Name:      "response_size_bytes",
-				Help:      "Bucketed histogram of the HTTP response sizes in bytes.",
-				Buckets:   []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
-			},
-			reqLabels),
-		"response_size_bytes").(*prometheus.HistogramVec)
 	reqSize = register(
 		prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -58,10 +84,21 @@ func registerMetrics(service string) {
 				Subsystem: subsystem,
 				Name:      "request_size_bytes",
 				Help:      "Bucketed histogram of the HTTP request sizes in bytes.",
-				Buckets:   []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
+				Buckets:   buckets.reqSize,
 			},
 			reqLabels),
 		"request_size_bytes").(*prometheus.HistogramVec)
+	resSize = register(
+		prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      "response_size_bytes",
+				Help:      "Bucketed histogram of the HTTP response sizes in bytes.",
+				Buckets:   buckets.resSize,
+			},
+			reqLabels),
+		"response_size_bytes").(*prometheus.HistogramVec)
 	log.Info(nil, nil, "metrics registered successfully")
 }
 
