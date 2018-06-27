@@ -8,50 +8,60 @@ import (
 )
 
 var (
-	namespace = ""
-	subsystem = "service"
+	namespace   = ""
+	subsystem   string
+	reqLabels   = []string{"method", "entity", "code"}
+	reqCnt      *prometheus.CounterVec
+	reqDuration *prometheus.HistogramVec
+	resSize     *prometheus.HistogramVec
+	reqSize     *prometheus.HistogramVec
 )
 
-var (
-	reqLabels = []string{"method", "entity", "code"}
-
-	reqCnt = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "requests_total",
-		Help:      "Counter of requests received into the system.",
-	}, reqLabels)
-
-	reqDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "request_duration_seconds",
-		Help:      "Bucketed histogram of processing time (s) of requests.",
-		Buckets:   prometheus.ExponentialBuckets(0.05, 2, 8),
-	}, reqLabels)
-
-	resSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "response_size_bytes",
-		Help:      "Bucketed histogram of the HTTP response sizes in bytes.",
-		Buckets:   []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
-	}, reqLabels)
-
-	reqSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "request_size_bytes",
-		Help:      "Bucketed histogram of the HTTP request sizes in bytes.",
-		Buckets:   []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
-	}, reqLabels)
-)
-
-func registerMetrics() {
-	reqCnt = register(reqCnt, "requests_total").(*prometheus.CounterVec)
-	reqDuration = register(reqDuration, "request_duration_seconds").(*prometheus.HistogramVec)
-	resSize = register(resSize, "response_size_bytes").(*prometheus.HistogramVec)
-	reqSize = register(reqSize, "request_size_bytes").(*prometheus.HistogramVec)
+func registerMetrics(service string) {
+	subsystem = service
+	reqCnt = register(
+		prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      "requests_total",
+				Help:      "Counter of requests received into the system.",
+			},
+			reqLabels),
+		"requests_total").(*prometheus.CounterVec)
+	reqDuration = register(
+		prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      "request_duration_seconds",
+				Help:      "Bucketed histogram of processing time (s) of requests.",
+				Buckets:   prometheus.ExponentialBuckets(0.05, 2, 8),
+			},
+			reqLabels),
+		"request_duration_seconds").(*prometheus.HistogramVec)
+	resSize = register(
+		prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      "response_size_bytes",
+				Help:      "Bucketed histogram of the HTTP response sizes in bytes.",
+				Buckets:   []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
+			},
+			reqLabels),
+		"response_size_bytes").(*prometheus.HistogramVec)
+	reqSize = register(
+		prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      "request_size_bytes",
+				Help:      "Bucketed histogram of the HTTP request sizes in bytes.",
+				Buckets:   []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
+			},
+			reqLabels),
+		"request_size_bytes").(*prometheus.HistogramVec)
 	log.Info(nil, nil, "metrics registered successfully")
 }
 

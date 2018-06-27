@@ -13,8 +13,10 @@ import (
 )
 
 // Recorder record prometheus metrics related to http request and response.
-func Recorder() goa.Middleware {
-	registerMetrics()
+// the `service` arg is the name of the service, so that metrics can be distinguished
+// as subsystems in Prometheus
+func Recorder(service string) goa.Middleware {
+	registerMetrics(service)
 
 	return func(h goa.Handler) goa.Handler {
 		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
