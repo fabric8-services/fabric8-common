@@ -4,7 +4,6 @@ import (
 	"database/sql"
 
 	"github.com/fabric8-services/fabric8-common/log"
-	"github.com/fabric8-services/fabric8-common/workitem"
 	uuid "github.com/satori/go.uuid"
 
 	"fmt"
@@ -75,7 +74,8 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 
 		// Delete the work item cache as well
 		// NOTE: Feel free to add more cache freeing calls here as needed.
-		workitem.ClearGlobalWorkItemTypeCache()
+		// workitem.ClearGlobalWorkItemTypeCache()
+		// TODO: need a way to hook custom clean functions in here
 
 		if !inTransaction {
 			tx.Commit()
