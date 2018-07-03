@@ -1,0 +1,13 @@
+= Fabric8 Common
+
+a repository containing all common packages used by the fabric8 services.
+
+== Importing packages from other `fabric8-services` projects
+
+Warning: be sure to work on a topic branch before running the command below!
+
+The `Makefile` proposes a goal to export the commits for a given package of another `fabric8-services` project into a patch file which can then be applied to the `fabric8-common` repository.
+
+The syntax to use is: `make import project=<project> pkg<pkg>`. For example: `make import project=fabric8-wit pkg=convert`
+
+Once the patch has been applied, the `dep ensure -v` and `go build ./...` commands will be executed, in order to verify that everything is fine :)
