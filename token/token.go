@@ -7,7 +7,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	authjwk "github.com/fabric8-services/fabric8-auth/token/jwk"
-	"github.com/fabric8-services/fabric8-common/auth/authservice"
 	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/fabric8-services/fabric8-common/log"
 	"github.com/fabric8-services/fabric8-common/login/tokencontext"
@@ -21,6 +20,7 @@ import (
 type tokenManagerConfiguration interface {
 	GetAuthServiceURL() string
 	GetKeycloakDevModeURL() string
+	GetKeysTokenPath() string
 }
 
 // TokenClaims represents access token claims
@@ -73,7 +73,7 @@ func NewManager(config tokenManagerConfiguration) (Manager, error) {
 		publicKeysMap: map[string]*rsa.PublicKey{},
 	}
 
-	keysEndpoint := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), authservice.KeysTokenPath())
+	keysEndpoint := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), config.GetKeysTokenPath())
 	remoteKeys, err := authjwk.FetchKeys(keysEndpoint)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
