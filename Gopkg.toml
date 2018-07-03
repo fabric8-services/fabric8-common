@@ -24,7 +24,89 @@
 #   go-tests = true
 #   unused-packages = true
 
+required = [
+  "github.com/golang/lint/golint",
+  "github.com/fzipp/gocyclo",
+  "github.com/goadesign/goa/cors",
+  "github.com/goadesign/goa/design/apidsl",
+  "github.com/goadesign/goa/encoding/form",
+  "github.com/goadesign/goa/goagen",
+  "github.com/goadesign/goa/goagen/codegen",
+  "github.com/goadesign/goa/goagen/gen_app",
+  "github.com/goadesign/goa/goagen/gen_controller",
+  "github.com/goadesign/goa/goagen/gen_swagger",
+  "github.com/goadesign/goa/goagen/utils",
+  "github.com/goadesign/goa/goatest",
+  "github.com/wadey/gocovmerge",
+  "github.com/pilu/fresh",
+  "github.com/davecgh/go-spew/spew",
+]
 
 [prune]
   go-tests = true
   unused-packages = true
+
+# [[constraint]]
+#   name = "github.com/asaskevich/govalidator"
+#   version = "5.0.0"
+
+[[constraint]]
+  name = "github.com/dgrijalva/jwt-go"
+  version = "3.0.0"
+
+[[constraint]]
+  name = "github.com/goadesign/goa"
+  version = "=1.3.0"
+
+[[constraint]]
+  name = "github.com/satori/go.uuid"
+  version = "=1.2.0"
+
+[[constraint]]
+  name = "github.com/pkg/errors"
+  version = "0.8.0"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "0.8.0"
+
+# [[constraint]]
+#   name = "github.com/robfig/cron"
+#   version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "0.11.2"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.2.2"
+
+# [[constraint]]
+#   name = "gopkg.in/asaskevich/govalidator.v4"
+#   version = "4.0.0"
+
+[[constraint]]
+  name = "github.com/golang/lint"
+  revision = "master"
+  
+[[constraint]]
+  name = "github.com/jinzhu/gorm"
+  revision = "master"
+  
+[[constraint]]
+  name = "github.com/fzipp/gocyclo"
+  revision = "master"
+
+[[constraint]]
+  name = "github.com/wadey/gocovmerge"
+  revision = "master"
+
+[[constraint]]
+  name = "github.com/getsentry/raven-go"
+  revision = "master"
+
+# [[constraint]]
+#   name = "github.com/dnaeon/go-vcr"
+#   revision= "9d71b8a6df86e00127f96bc8dabc09856ab8afdb"
+
