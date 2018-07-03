@@ -18,25 +18,25 @@ var (
 )
 
 // BucketOption a function to configure a given buckets config
-type BucketOption func(c bucketsConfig)
+type BucketOption func(c *bucketsConfig)
 
 // WithRequestDurationBucket configures the bucket for the `request duration` metrics
 func WithRequestDurationBucket(bucket []float64) BucketOption {
-	return func(c bucketsConfig) {
+	return func(c *bucketsConfig) {
 		c.reqDuration = bucket
 	}
 }
 
 // WithRequestSizeBucket configures the bucket for the `request size` metrics
 func WithRequestSizeBucket(bucket []float64) BucketOption {
-	return func(c bucketsConfig) {
+	return func(c *bucketsConfig) {
 		c.reqSize = bucket
 	}
 }
 
 // WithResponseSizeBucket configures the bucket for the `response size` metrics
 func WithResponseSizeBucket(bucket []float64) BucketOption {
-	return func(c bucketsConfig) {
+	return func(c *bucketsConfig) {
 		c.resSize = bucket
 	}
 }
@@ -51,11 +51,16 @@ type bucketsConfig struct {
 
 func registerMetrics(service string, opts ...BucketOption) {
 	subsystem = service
-	buckets := bucketsConfig{
+
+	buckets := &bucketsConfig{
 		reqDuration: prometheus.ExponentialBuckets(0.05, 2, 8),
 		reqSize:     []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
 		resSize:     []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
 	}
+	for _, opt := range opts {
+		opt(buckets)
+	}
+
 	reqCnt = register(
 		prometheus.NewCounterVec(
 			prometheus.CounterOpts{

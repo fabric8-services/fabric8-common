@@ -28,6 +28,8 @@ var (
 )
 
 func TestReqsTotalMetric(t *testing.T) {
+	Recorder("TestReqsTotal")
+
 	// for dummy entity, POST=3 and GET=1
 	recordReqsTotal(post, dummy, "2xx")
 	recordReqsTotal(get, dummy, "2xx")
@@ -47,6 +49,8 @@ func TestReqsTotalMetric(t *testing.T) {
 }
 
 func TestReqDurationMetric(t *testing.T) {
+	Recorder("TestReqDuration")
+
 	reqTimes := []time.Duration{51, 101, 201, 401, 801, 1601, 3201, 6401}
 	expectedBound := []float64{0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4}
 	expectedCnt := []uint64{0, 1, 2, 3, 4, 5, 6, 7}
@@ -68,6 +72,8 @@ func TestReqDurationMetric(t *testing.T) {
 }
 
 func TestResSizeMetric(t *testing.T) {
+	Recorder("TestResSize")
+
 	resSizes := []int{1001, 5001, 10001, 20001, 30001, 40001, 50001}
 	expectedBound := []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000}
 	expectedCnt := []uint64{0, 1, 2, 3, 4, 5, 6}
@@ -90,6 +96,8 @@ func TestResSizeMetric(t *testing.T) {
 }
 
 func TestReqSizeMetric(t *testing.T) {
+	Recorder("TestReqSize")
+
 	reqSizes := []int64{1001, 5001, 10001, 20001, 30001, 40001, 50001}
 	expectedBound := []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000}
 	expectedCnt := []uint64{0, 1, 2, 3, 4, 5, 6}
@@ -111,6 +119,49 @@ func TestReqSizeMetric(t *testing.T) {
 	checkHistogram(t, m, uint64(len(reqSizes)), expectedBound, expectedCnt)
 }
 
+func TestCustomBucket1(t *testing.T) {
+	reqSizes := []int64{9, 11, 21}
+	expectedBound := []float64{10, 20}
+	expectedCnt := []uint64{1, 2}
+
+	Recorder("TestCustom1", WithRequestSizeBucket(expectedBound))
+
+	// add post method for dummy entity
+	for _, size := range reqSizes {
+		req := &http.Request{ContentLength: size}
+		recordReqSize(post, dummy, "2xx", req)
+	}
+
+	// validate
+	reqMetric, _ := reqSize.GetMetricWithLabelValues(post, dummy, "2xx")
+	m := &dto.Metric{}
+	reqMetric.Write(m)
+	checkHistogram(t, m, uint64(len(reqSizes)), expectedBound, expectedCnt)
+}
+
+func TestCustomBucket2(t *testing.T) {
+	resSizes := []int{9, 11, 21}
+	expectedBound := []float64{10, 20}
+	expectedCnt := []uint64{1, 2}
+
+	Recorder("TestCustom2", WithResponseSizeBucket(expectedBound))
+
+	// add get method for dummy entity
+	for _, size := range resSizes {
+		res := &goa.ResponseData{Length: size}
+		recordResSize(get, dummy, "2xx", res)
+	}
+
+	// add get method for test entity to make sure that this should be filtered out
+	res := &goa.ResponseData{Length: 1000}
+	recordResSize(get, test, "2xx", res)
+
+	// validate
+	reqMetric, _ := resSize.GetMetricWithLabelValues(get, dummy, "2xx")
+	m := &dto.Metric{}
+	reqMetric.Write(m)
+	checkHistogram(t, m, uint64(len(resSizes)), expectedBound, expectedCnt)
+}
 func TestLabelsVal(t *testing.T) {
 	svc := goa.New("metric")
 	ctrl := svc.NewController(dummyCtrl)
