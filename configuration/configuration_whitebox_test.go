@@ -32,66 +32,6 @@ func resetConfiguration() {
 	}
 }
 
-func TestOpenIDConnectPathOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-
-	path := config.openIDConnectPath("somesufix")
-	assert.Equal(t, "auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/somesufix", path)
-}
-
-func TestGetKeycloakURLOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-
-	url, err := config.getServiceURL(reqLong, config.GetKeycloakDomainPrefix(), "somepath")
-	require.NoError(t, err)
-	assert.Equal(t, "http://sso.service.domain.org/somepath", url)
-
-	url, err = config.getServiceURL(reqShort, config.GetKeycloakDomainPrefix(), "somepath2")
-	require.NoError(t, err)
-	assert.Equal(t, "http://sso.domain.org/somepath2", url)
-}
-
-func TestGetKeycloakHttpsURLOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-
-	r, err := http.NewRequest("", "https://sso.domain.org", nil)
-	require.NoError(t, err)
-	url, err := config.getServiceURL(r, config.GetKeycloakDomainPrefix(), "somepath")
-	require.NoError(t, err)
-	assert.Equal(t, "https://sso.domain.org/somepath", url)
-}
-
-func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-	r := &http.Request{Host: "org"}
-	_, err := config.getServiceURL(r, config.GetKeycloakDomainPrefix(), "somepath")
-	assert.NotNil(t, err)
-}
-
-func TestKeycloakRealmInDevModeCanBeOverridden(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-
-	key := "F8_KEYCLOAK_REALM"
-	realEnvValue := os.Getenv(key)
-
-	os.Unsetenv(key)
-	defer func() {
-		os.Setenv(key, realEnvValue)
-		resetConfiguration()
-	}()
-
-	assert.Equal(t, devModeKeycloakRealm, config.GetKeycloakRealm())
-
-	os.Setenv(key, "somecustomrealm")
-	resetConfiguration()
-
-	assert.Equal(t, "somecustomrealm", config.GetKeycloakRealm())
-}
-
 func TestGetLogLevelOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 

@@ -53,20 +53,12 @@ const (
 	varDiagnoseHTTPAddress          = "diagnose.http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
 	varAuthDomainPrefix             = "auth.domain.prefix"
+	varKeysTokenPath                = "auth.keys.token.path"
 	varAuthShortServiceHostName     = "auth.servicehostname.short"
 	varAuthURL                      = "auth.url"
 	varAuthorizationEnabled         = "authz.enabled"
 	varGithubAuthToken              = "github.auth.token"
 	varOpenshiftProxyURL            = "osoproxy.url"
-	varKeycloakSecret               = "keycloak.secret"
-	varKeycloakClientID             = "keycloak.client.id"
-	varKeycloakDomainPrefix         = "keycloak.domain.prefix"
-	varKeycloakRealm                = "keycloak.realm"
-	varKeycloakTesUserName          = "keycloak.testuser.name"
-	varKeycloakTesUserSecret        = "keycloak.testuser.secret"
-	varKeycloakTesUser2Name         = "keycloak.testuser2.name"
-	varKeycloakTesUser2Secret       = "keycloak.testuser2.secret"
-	varKeycloakURL                  = "keycloak.url"
 	varAuthNotApprovedRedirect      = "auth.notapproved.redirect"
 	varHeaderMaxLength              = "header.maxlength"
 	varEnvironment                  = "environment"
@@ -91,21 +83,8 @@ const (
 
 	defaultAuthShortServiceHostName = "http://auth"
 
-	defaultKeycloakClientID = "fabric8-online-platform"
-	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
-
-	defaultKeycloakDomainPrefix = "sso"
-	defaultKeycloakRealm        = "fabric8"
-
 	// Github does not allow committing actual OAuth tokens no matter how less privilege the token has
 	camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
-
-	defaultKeycloakTesUserName  = "testuser"
-	defaultKeycloakTesUser2Name = "testuser2"
-
-	// Keycloak vars to be used in dev mode. Can be overridden by setting up keycloak.url & keycloak.realm
-	devModeKeycloakURL   = "https://sso.prod-preview.openshift.io"
-	devModeKeycloakRealm = "fabric8-test"
 
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
 	defaultTogglesServiceURL        = "http://f8toggles-service"
@@ -255,17 +234,13 @@ func (c *Registry) setConfigDefaults() {
 	// Auth-related defaults
 	c.v.SetDefault(varAuthURL, devModeAuthURL)
 	c.v.SetDefault(varAuthDomainPrefix, "auth")
-	c.v.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
-	c.v.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
+	c.v.SetDefault(varKeysTokenPath, "/api/token/keys")
 	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
-	c.v.SetDefault(varKeycloakDomainPrefix, defaultKeycloakDomainPrefix)
-	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
 	c.v.SetDefault(varAuthorizationEnabled, true)
 
 	// Proxy related defaults
 	c.v.SetDefault(varOpenshiftProxyURL, "")
 
-	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
 	c.v.SetDefault(varCheStarterURL, defaultCheStarterURL)
 	c.v.SetDefault(varTogglesServiceURL, defaultTogglesServiceURL)
@@ -373,7 +348,7 @@ func (c *Registry) GetMetricsHTTPAddress() string {
 func (c *Registry) GetDiagnoseHTTPAddress() string {
 	if c.v.IsSet(varDiagnoseHTTPAddress) {
 		return c.v.GetString(varDiagnoseHTTPAddress)
-	} else if c.IsPostgresDeveloperModeEnabled() {
+	} else if c.DeveloperModeEnabled() {
 		return "127.0.0.1:0"
 	}
 	return ""
@@ -405,9 +380,9 @@ func (c *Registry) GetEnvironment() string {
 	return "local"
 }
 
-// IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
+// DeveloperModeEnabled returns `true` if development related features (as set via default, config file, or environment variable),
 // e.g. token generation endpoint are enabled
-func (c *Registry) IsPostgresDeveloperModeEnabled() bool {
+func (c *Registry) DeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
 }
 
@@ -431,6 +406,11 @@ func (c *Registry) GetAuthDomainPrefix() string {
 	return c.v.GetString(varAuthDomainPrefix)
 }
 
+// GetKeysTokenPath returns the URL path to retrieve the public keys to verify tokens signature
+func (c *Registry) GetKeysTokenPath() string {
+	return c.v.GetString(varKeysTokenPath)
+}
+
 // GetAuthShortServiceHostName returns the short Auth service host name
 // or the full Auth service URL if not set and Dev Mode enabled.
 // Otherwise returns the default host - http://auth
@@ -438,7 +418,7 @@ func (c *Registry) GetAuthShortServiceHostName() string {
 	if c.v.IsSet(varAuthShortServiceHostName) {
 		return c.v.GetString(varAuthShortServiceHostName)
 	}
-	if c.IsPostgresDeveloperModeEnabled() {
+	if c.DeveloperModeEnabled() {
 		return c.GetAuthServiceURL()
 	}
 	return defaultAuthShortServiceHostName
@@ -461,7 +441,7 @@ func (c *Registry) getServiceEndpoint(req *http.Request, varServiceURL string, d
 		// Service URL is set. Calculate the URL endpoint
 		endpoint = fmt.Sprintf("%s/%s", c.v.GetString(varServiceURL), pathSufix)
 	} else {
-		if c.IsPostgresDeveloperModeEnabled() {
+		if c.DeveloperModeEnabled() {
 			// Devmode is enabled. Calculate the URL endopoint using the devmode Service URL
 			endpoint = fmt.Sprintf("%s/%s", devModeURL, pathSufix)
 		} else {
@@ -484,156 +464,6 @@ func (c *Registry) GetAuthNotApprovedRedirect() string {
 // GetGithubAuthToken returns the actual Github OAuth Access Token
 func (c *Registry) GetGithubAuthToken() string {
 	return c.v.GetString(varGithubAuthToken)
-}
-
-// GetKeycloakSecret returns the keycloak client secret (as set via config file or environment variable)
-// that is used to make authorized Keycloak API Calls.
-func (c *Registry) GetKeycloakSecret() string {
-	return c.v.GetString(varKeycloakSecret)
-}
-
-// GetKeycloakClientID returns the keycloak client ID (as set via config file or environment variable)
-// that is used to make authorized Keycloak API Calls.
-func (c *Registry) GetKeycloakClientID() string {
-	return c.v.GetString(varKeycloakClientID)
-}
-
-// GetKeycloakDomainPrefix returns the domain prefix which should be used in all Keycloak requests
-func (c *Registry) GetKeycloakDomainPrefix() string {
-	return c.v.GetString(varKeycloakDomainPrefix)
-}
-
-// GetKeycloakRealm returns the keycloak realm name
-func (c *Registry) GetKeycloakRealm() string {
-	if c.v.IsSet(varKeycloakRealm) {
-		return c.v.GetString(varKeycloakRealm)
-	}
-	if c.IsPostgresDeveloperModeEnabled() {
-		return devModeKeycloakRealm
-	}
-	return defaultKeycloakRealm
-}
-
-// GetKeycloakTestUserName returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
-func (c *Registry) GetKeycloakTestUserName() string {
-	return c.v.GetString(varKeycloakTesUserName)
-}
-
-// GetKeycloakTestUser2Name returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
-func (c *Registry) GetKeycloakTestUser2Name() string {
-	return c.v.GetString(varKeycloakTesUser2Name)
-}
-
-// GetKeycloakEndpointAuth returns the keycloak auth endpoint set via config file or environment variable.
-// If nothing set then in Dev environment the defualt endopoint will be returned.
-// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
-// Example: api.service.domain.org -> sso.service.domain.org
-// or api.domain.org -> sso.domain.org
-func (c *Registry) GetKeycloakEndpointAuth(req *http.Request) (string, error) {
-	return c.getKeycloakOpenIDConnectEndpoint(req, "auth")
-}
-
-// GetKeycloakEndpointToken returns the keycloak token endpoint set via config file or environment variable.
-// If nothing set then in Dev environment the defualt endopoint will be returned.
-// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
-// Example: api.service.domain.org -> sso.service.domain.org
-// or api.domain.org -> sso.domain.org
-func (c *Registry) GetKeycloakEndpointToken(req *http.Request) (string, error) {
-	return c.getKeycloakOpenIDConnectEndpoint(req, "token")
-}
-
-// GetKeycloakEndpointUserInfo returns the keycloak userinfo endpoint set via config file or environment variable.
-// If nothing set then in Dev environment the defualt endopoint will be returned.
-// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
-// Example: api.service.domain.org -> sso.service.domain.org
-// or api.domain.org -> sso.domain.org
-func (c *Registry) GetKeycloakEndpointUserInfo(req *http.Request) (string, error) {
-	return c.getKeycloakOpenIDConnectEndpoint(req, "userinfo")
-}
-
-// GetKeycloakEndpointAdmin returns the <keycloak>/realms/admin/<realm> endpoint
-// set via config file or environment variable.
-// If nothing set then in Dev environment the defualt endopoint will be returned.
-// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
-// Example: api.service.domain.org -> sso.service.domain.org
-// or api.domain.org -> sso.domain.org
-func (c *Registry) GetKeycloakEndpointAdmin(req *http.Request) (string, error) {
-	return c.getKeycloakEndpoint(req, "auth/admin/realms/"+c.GetKeycloakRealm())
-}
-
-// GetKeycloakEndpointAuthzResourceset returns the <keycloak>/realms/<realm>/authz/protection/resource_set endpoint
-// set via config file or environment variable.
-// If nothing set then in Dev environment the defualt endopoint will be returned.
-// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
-// Example: api.service.domain.org -> sso.service.domain.org
-// or api.domain.org -> sso.domain.org
-func (c *Registry) GetKeycloakEndpointAuthzResourceset(req *http.Request) (string, error) {
-	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/authz/protection/resource_set")
-}
-
-// GetKeycloakEndpointClients returns the <keycloak>/admin/realms/<realm>/clients endpoint
-// set via config file or environment variable.
-// If nothing set then in Dev environment the defualt endopoint will be returned.
-// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
-// Example: api.service.domain.org -> sso.service.domain.org
-// or api.domain.org -> sso.domain.org
-func (c *Registry) GetKeycloakEndpointClients(req *http.Request) (string, error) {
-	return c.getKeycloakEndpoint(req, "auth/admin/realms/"+c.GetKeycloakRealm()+"/clients")
-}
-
-// GetKeycloakEndpointEntitlement returns the <keycloak>/realms/<realm>/authz/entitlement/<clientID> endpoint
-// set via config file or environment variable.
-// If nothing set then in Dev environment the defualt endopoint will be returned.
-// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
-// Example: api.service.domain.org -> sso.service.domain.org
-// or api.domain.org -> sso.domain.org
-func (c *Registry) GetKeycloakEndpointEntitlement(req *http.Request) (string, error) {
-	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
-}
-
-// GetKeycloakEndpointBroker returns the <keycloak>/realms/<realm>/authz/entitlement/<clientID> endpoint
-// set via config file or environment variable.
-// If nothing set then in Dev environment the defualt endopoint will be returned.
-// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
-// Example: api.service.domain.org -> sso.service.domain.org
-// or api.domain.org -> sso.domain.org
-func (c *Registry) GetKeycloakEndpointBroker(req *http.Request) (string, error) {
-	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/broker")
-}
-
-// GetKeycloakAccountEndpoint returns the API URL for Read and Update on Keycloak User Accounts.
-func (c *Registry) GetKeycloakAccountEndpoint(req *http.Request) (string, error) {
-	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/account")
-}
-
-// GetKeycloakEndpointLogout returns the keycloak logout endpoint set via config file or environment variable.
-// If nothing set then in Dev environment the defualt endopoint will be returned.
-// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
-// Example: api.service.domain.org -> sso.service.domain.org
-// or api.domain.org -> sso.domain.org
-func (c *Registry) GetKeycloakEndpointLogout(req *http.Request) (string, error) {
-	return c.getKeycloakOpenIDConnectEndpoint(req, "logout")
-}
-
-// GetKeycloakDevModeURL returns Keycloak URL (including realm name) used by default in Dev mode
-// Returns "" if DevMode is not enabled
-func (c *Registry) GetKeycloakDevModeURL() string {
-	if c.IsPostgresDeveloperModeEnabled() {
-		return fmt.Sprintf("%s/auth/realms/%s", devModeKeycloakURL, c.GetKeycloakRealm())
-	}
-	return ""
-}
-
-func (c *Registry) getKeycloakOpenIDConnectEndpoint(req *http.Request, pathSufix string) (string, error) {
-	return c.getKeycloakEndpoint(req, c.openIDConnectPath(pathSufix))
-}
-
-func (c *Registry) getKeycloakEndpoint(req *http.Request, pathSufix string) (string, error) {
-	return c.getServiceEndpoint(req, varKeycloakURL, devModeKeycloakURL, c.GetKeycloakDomainPrefix(), pathSufix)
-}
-
-func (c *Registry) openIDConnectPath(suffix string) string {
-	return "auth/realms/" + c.GetKeycloakRealm() + "/protocol/openid-connect/" + suffix
 }
 
 func (c *Registry) getServiceURL(req *http.Request, serviceDomainPrefix string, path string) (string, error) {
@@ -675,7 +505,7 @@ func (c *Registry) IsLogJSON() bool {
 	if c.v.IsSet(varLogJSON) {
 		return c.v.GetBool(varLogJSON)
 	}
-	if c.IsPostgresDeveloperModeEnabled() {
+	if c.DeveloperModeEnabled() {
 		return false
 	}
 	return true
@@ -688,7 +518,7 @@ func (c *Registry) GetValidRedirectURLs(req *http.Request) (string, error) {
 	if c.v.IsSet(varValidRedirectURLs) {
 		return c.v.GetString(varValidRedirectURLs), nil
 	}
-	if c.IsPostgresDeveloperModeEnabled() {
+	if c.DeveloperModeEnabled() {
 		return devModeValidRedirectURLs, nil
 	}
 	return c.checkLocalhostRedirectException(req)

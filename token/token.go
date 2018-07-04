@@ -19,8 +19,8 @@ import (
 // tokenManagerConfiguration represents configuration needed to construct a token manager
 type tokenManagerConfiguration interface {
 	GetAuthServiceURL() string
-	GetKeycloakDevModeURL() string
 	GetKeysTokenPath() string
+	DeveloperModeEnabled() bool
 }
 
 // TokenClaims represents access token claims
@@ -90,23 +90,7 @@ func NewManager(config tokenManagerConfiguration) (Manager, error) {
 		}, "Public key added")
 	}
 
-	devModeURL := config.GetKeycloakDevModeURL()
-	if devModeURL != "" {
-		remoteKeys, err = authjwk.FetchKeys(fmt.Sprintf("%s/protocol/openid-connect/certs", devModeURL))
-		if err != nil {
-			log.Error(nil, map[string]interface{}{
-				"err":      err,
-				"keys_url": devModeURL,
-			}, "unable to load public keys from remote service in Dev Mode")
-			return nil, errors.New("unable to load public keys from remote service in Dev Mode")
-		}
-		for _, remoteKey := range remoteKeys {
-			tm.publicKeysMap[remoteKey.KeyID] = remoteKey.Key
-			tm.publicKeys = append(tm.publicKeys, &PublicKey{KeyID: remoteKey.KeyID, Key: remoteKey.Key})
-			log.Info(nil, map[string]interface{}{
-				"kid": remoteKey.KeyID,
-			}, "Public key added")
-		}
+	if config.DeveloperModeEnabled() {
 		// Add the public key which will be used to verify tokens generated in dev mode
 		rsaKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(configuration.DevModeRsaPrivateKey))
 		if err != nil {
