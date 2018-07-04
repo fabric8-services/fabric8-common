@@ -1,4 +1,4 @@
-
+# credit: http://www.pixelite.co.nz/article/extracting-file-folder-from-git-repository-with-full-git-history/
 
 .PHONY: help
 # Based on https://gist.github.com/rcmachado/af3db315e31383502660
@@ -41,25 +41,47 @@ build: deps
 	go build ./...
 
 .PHONY: import
-## import a pkg from another repository, along with the commit history
-import: import-commits build
+## import a pkg or a file from another repository, along with the commit history
+import: import-multiple-commits build
 
-.PHONY: import-commits
-import-commits:
-	# export the commits (as patches) from the source repo
-	echo "exporting content and commit history of pkg '$(pkg)' from '$(project)'..." 
-	cd $(GOPATH)/src/github.com/fabric8-services/$(project) 1>/dev/null && \
+.PHONY: import-multiple-commits
+import-multiple-commits:
+# export the commits (as patches) from the source repo
+	@echo "exporting content and commit history of pkg or file '$(pkg)' from '$(project)'..." 
+	@cd $(GOPATH)/src/github.com/fabric8-services/$(project) 1>/dev/null && \
 	git log --pretty=email --patch-with-stat --reverse --full-index --binary -- $(pkg) > /tmp/migrate.patch
 	
-	echo "(naively) converting goimports from \"github.com/fabric8-services/$(project)\" to \"github.com/fabric8-services/fabric8-common\"..."
-	# replace imports of root pkg
-	$(eval SED_REGEX:="s/\"github.com\/fabric8-services\/$(project)\"/\"github.com\/fabric8-services\/fabric8-common\"/g") 
-	eval sed -i -e $(SED_REGEX) /tmp/migrate.patch
-	# rename imports of sub pkg
-	$(eval SED_REGEX:="s/\"github.com\/fabric8-services\/$(project)\/\([a-zA-Z0-9/]*\)\"/\"github.com\/fabric8-services\/fabric8-common\/\1\"/g")
-	sed -i -e $(SED_REGEX) /tmp/migrate.patch 
+	@echo "converting goimports from \"github.com/fabric8-services/$(project)\" to \"github.com/fabric8-services/fabric8-common\"..."
+# replace imports of root pkg
+	@$(eval SED_REGEX:="s/\"github.com\/fabric8-services\/$(project)\"/\"github.com\/fabric8-services\/fabric8-common\"/g") 
+	@eval sed -i -e $(SED_REGEX) /tmp/migrate.patch
+# rename imports of sub pkg
+	@$(eval SED_REGEX:="s/\"github.com\/fabric8-services\/$(project)\/\([a-zA-Z0-9/]*\)\"/\"github.com\/fabric8-services\/fabric8-common\/\1\"/g")
+	@sed -i -e $(SED_REGEX) /tmp/migrate.patch 
+# import the commits into the target repo
+	@echo "importing pkg or file '$(pkg)' with commit history into `pwd`"
+	@git am /tmp/migrate.patch 
 
-	# import the commits into the target repo
-	echo "importing pkg '$(pkg)' with commit history into `pwd`"
-	git am /tmp/migrate.patch 
+.PHONY: import-commit
+## import a pkg or a file from another repository, along with the commit history
+import-commit: import-single-commit build
+
+.PHONY: import-single-commit
+import-single-commit:
+# export the commits (as patches) from the source repo
+	@echo "exporting content and log of '$(hash)' from '$(project)'..." 
+	@cd $(GOPATH)/src/github.com/fabric8-services/$(project) 1>/dev/null && \
+	git show --pretty=email --patch-with-stat --reverse --full-index --binary $(hash) > /tmp/migrate.patch
+	
+	@echo "converting goimports from \"github.com/fabric8-services/$(project)\" to \"github.com/fabric8-services/fabric8-common\"..."
+# replace imports of root pkg
+	@$(eval SED_REGEX:="s/\"github.com\/fabric8-services\/$(project)\"/\"github.com\/fabric8-services\/fabric8-common\"/g") 
+	@eval sed -i -e $(SED_REGEX) /tmp/migrate.patch
+# rename imports of sub pkg
+	@$(eval SED_REGEX:="s/\"github.com\/fabric8-services\/$(project)\/\([a-zA-Z0-9/]*\)\"/\"github.com\/fabric8-services\/fabric8-common\/\1\"/g")
+	@sed -i -e $(SED_REGEX) /tmp/migrate.patch 
+
+# import the commits into the target repo
+	@echo "importing commit '$(hash)' with commit history into `pwd`"
+	@git am /tmp/migrate.patch 
 

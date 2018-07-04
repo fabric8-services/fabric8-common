@@ -1,0 +1,29 @@
+= Contributing to the Fabric8-common repository
+
+== Importing packages or files from other `fabric8-services` projects
+
+Warning: be sure to work on a topic branch before running the command below!
+
+The `Makefile` includes a goal to export the commits for a given package (or a single file) from any other `fabric8-services` project into a patch file which can then be applied to the `fabric8-common` repository, which allows for importing the commit history along with the source code.
+
+The syntax to use is: `make import project=<project> pkg<pkg>`. 
+For example: 
+----
+make import project=fabric8-wit pkg=convert
+
+make import project=fabric8-wit pkg=design/api.go
+----
+
+Once the patch has been applied, the `dep ensure -v` and `go build ./...` commands will be executed, in order to verify that everything compiles :)
+
+== Importing a single commit from other `fabric8-services` projects
+
+Warning: be sure to work on a topic branch before running the command below!
+
+The `make import-commit` goal allows for importing a specific commit into the repository:
+
+----
+make import project=fabric8-wit pkg=README.adoc
+----
+
+Once the patch has been applied, the `dep ensure -v` and `go build ./...` commands will be executed, in order to verify that everything compiles :)
