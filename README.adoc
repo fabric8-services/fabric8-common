@@ -35,4 +35,4 @@ Contents of this repository are anticipated to include:
 ** Service Account token management
 ** JWT token parsing (jwt_token to token_string and token_string to jwt_token)
 
-For Contributing to this project, please refer file:CONTRIBUTING.md[CONTRIBUTING.md]
+For Contributing to this project, please refer https://github.com/fabric8-services/fabric8-common/blob/master/CONTRIBUTING.adoc[CONTRIBUTING.md]
