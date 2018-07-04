@@ -8,7 +8,6 @@ import (
 	"golang.org/x/oauth2"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/fabric8-services/fabric8-common/account"
 	"github.com/fabric8-services/fabric8-common/resource"
 	testtoken "github.com/fabric8-services/fabric8-common/test/token"
 	"github.com/fabric8-services/fabric8-common/token"
@@ -31,11 +30,9 @@ func init() {
 func TestValidOAuthAccessToken(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	identity := account.Identity{
-		ID:       uuid.NewV4(),
-		Username: "testuser",
-	}
-	generatedToken, err := testtoken.GenerateToken(identity.ID.String(), identity.Username, privateKey)
+	userID := uuid.NewV4()
+	username := "testuser"
+	generatedToken, err := testtoken.GenerateToken(userID.String(), username, privateKey)
 	require.NoError(t, err)
 	accessToken := &oauth2.Token{
 		AccessToken: generatedToken,
@@ -44,8 +41,8 @@ func TestValidOAuthAccessToken(t *testing.T) {
 
 	claims, err := tokenManager.ParseToken(context.Background(), accessToken.AccessToken)
 	require.NoError(t, err)
-	assert.Equal(t, identity.ID.String(), claims.Subject)
-	assert.Equal(t, identity.Username, claims.Username)
+	assert.Equal(t, userID.String(), claims.Subject)
+	assert.Equal(t, username, claims.Username)
 }
 
 func TestInvalidOAuthAccessToken(t *testing.T) {

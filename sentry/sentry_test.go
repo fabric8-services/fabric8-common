@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-common/account"
 	"github.com/fabric8-services/fabric8-common/login/tokencontext"
 	"github.com/fabric8-services/fabric8-common/resource"
 	testtoken "github.com/fabric8-services/fabric8-common/test/token"
@@ -44,10 +43,8 @@ func validToken(t *testing.T, identityID string, identityUsername string) contex
 func Test_extractUserInfo(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	identity := account.Identity{
-		ID:       uuid.NewV4(),
-		Username: "testuser",
-	}
+	userID := uuid.NewV4()
+	username := "testuser"
 
 	tests := []struct {
 		name    string
@@ -72,12 +69,12 @@ func Test_extractUserInfo(t *testing.T) {
 		},
 		{
 			name:    "pass on parsing token",
-			ctx:     validToken(t, identity.ID.String(), identity.Username),
+			ctx:     validToken(t, userID.String(), username),
 			wantErr: false,
 			want: &raven.User{
-				Username: identity.Username,
-				ID:       identity.ID.String(),
-				Email:    identity.Username + "@email.com",
+				Username: username,
+				ID:       userID.String(),
+				Email:    username + "@email.com",
 			},
 		},
 	}
