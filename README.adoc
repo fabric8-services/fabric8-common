@@ -1,19 +1,28 @@
 = Fabric8 Common
 
-A repository containing all common packages used by the fabric8 services.
+A repository containing all common packages used by the fabric8 services. This repository addresses issue https://github.com/openshiftio/openshift.io/issues/3553[#3553]
 
-== Importing packages from other `fabric8-services` projects
+Go code shared between fabric8 services can be added here, and then imported by the services.
+This will add consistency, reliability, clarity, and (hopefully) reduce bugs and circular repo-to-repo dependencies.
 
-Warning: be sure to work on a topic branch before running the command below!
+Any code added to this repository should also have test code added, that passes "go test .".
 
-The `Makefile` includes a goal to export the commits for a given package (or a single file) from any other `fabric8-services` project into a patch file which can then be applied to the `fabric8-common` repository, which allows for importing the commit history along with the source code.
+Contents of this repository are anticipated to include:
 
-The syntax to use is: `make import project=<project> pkg<pkg>`. 
-For example: 
-----
-make import project=fabric8-wit pkg=convert
+* Configuration
+* Event bus
+* Logging
+** Common logging format
+** Single initialization
+** Error handling
+** Common HTTP error response format
+** Metrics
+* Utility
+* Validation routines (application name, etc)
+* HTTP/REST (closing result body, URL utils)
+* Auth
+** Loading/parsing public key
+** Service Account token management
+** JWT token parsing (jwt_token to token_string and token_string to jwt_token)
 
-make import project=fabric8-wit pkg=design/api.go
-----
-
-Once the patch has been applied, the `dep ensure -v` and `go build ./...` commands will be executed, in order to verify that everything compiles :)
+For Contributing to this project, please refer [CONTRIBUTING.md](CONTRIBUTING.md)
