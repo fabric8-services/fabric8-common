@@ -1,0 +1,7 @@
+bindata_assetfs\.go
+sqlbindata
+design/.*
+.*exported
+migration/sqlbindata\.go
+EOF
+spacetemplate/template_assets\.go

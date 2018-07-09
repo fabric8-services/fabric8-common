@@ -1,3 +1,5 @@
+PROJECT_NAME=fabric8-common
+PACKAGE_NAME := github.com/fabric8-services/$(PROJECT_NAME)
 CUR_DIR=$(shell pwd)
 TMP_PATH=$(CUR_DIR)/tmp
 INSTALL_PREFIX=$(CUR_DIR)/bin
@@ -8,16 +10,27 @@ DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 
 # declares variable that are OS-sensitive
-SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 ifeq ($(OS),Windows_NT)
-include $(SELF_DIR)Makefile.win
+include ./.make/Makefile.win
 else
-include $(SELF_DIR)Makefile.lnx
+include ./.make/Makefile.lnx
 endif
+include ./.make/test.mk
 
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
+DEP_BIN_DIR := $(TMP_PATH)/bin
+# DEP_BIN := $(DEP_BIN_DIR)/$(DEP_BIN_NAME)
 DEP_BIN := $(shell command -v $(DEP_BIN_NAME) 2> /dev/null)
+DEP_VERSION=v0.4.1
 GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
+
+DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
+ifneq ($(OS),Windows_NT)
+ifdef DOCKER_BIN
+include ./.make/docker.mk
+endif
+endif
+
 
 # This is a fix for a non-existing user in passwd file when running in a docker
 # container and trying to clone repos of dependencies
@@ -43,15 +56,13 @@ help:/
 	$(info -----------------)
 	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
 		helpMessage = match(lastLine, /^## (.*)/); \
-		helpCommand = substr($$(pkg), 0, index($$(pkg), ":")-1); \
+		helpCommand = substr($$1, 0, index($$1, ":")-1); \
 		if (helpMessage) { \
 			helpMessage = substr(lastLine, RSTART + 3, RLENGTH); \
 			gsub(/##/, "\n                                     ", helpMessage); \
-		} else { \
-			helpMessage = "(No documentation)"; \
+			printf "%-35s -> %s\n", helpCommand, helpMessage; \
+			lastLine = "" \
 		} \
-		printf "%-35s -> %s\n", helpCommand, helpMessage; \
-		lastLine = "" \
 	} \
 	{ hasComment = match(lastLine, /^## (.*)/); \
           if(hasComment) { \
@@ -62,12 +73,69 @@ help:/
           } \
         }' $(MAKEFILE_LIST)
 
+GOFORMAT_FILES := $(shell find  . -name '*.go' | grep -vEf .gofmt_exclude)
+
+.PHONY: check-go-format
+## Exists with an error if there are files whose formatting differs from gofmt's
+check-go-format: prebuild-check
+	@gofmt -s -l ${GOFORMAT_FILES} 2>&1 \
+		| tee /tmp/gofmt-errors \
+		| read \
+	&& echo "ERROR: These files differ from gofmt's style (run 'make format-go-code' to fix this):" \
+	&& cat /tmp/gofmt-errors \
+	&& exit 1 \
+	|| true
 
 .PHONY: deps
-## fetch vendor dependencies
-deps:
-	@echo "fetching dependencies..."
-	dep ensure -v
+## Download build dependencies.
+deps: $(DEP_BIN) $(VENDOR_DIR)
+
+# install dep in a the tmp/bin dir of the repo
+# $(DEP_BIN):
+# 	@echo "Installing 'dep' $(DEP_VERSION) at '$(DEP_BIN_DIR)'..."
+# 	mkdir -p $(DEP_BIN_DIR)
+# ifeq ($(UNAME_S),Darwin)
+# 	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-darwin-amd64 -o $(DEP_BIN) 
+# 	@cd $(DEP_BIN_DIR) && \
+# 	echo "c0d875504ddc69533200b61e72064e00fb37717a3aa36722634789a778f00e59  dep" > dep-darwin-amd64.sha256 && \
+# 	shasum -a 256 --check dep-darwin-amd64.sha256
+# else
+# 	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-linux-amd64 -o $(DEP_BIN)
+# 	@cd $(DEP_BIN_DIR) && \
+# 	echo "31144e465e52ffbc0035248a10ddea61a09bf28b00784fd3fdd9882c8cbb2315  dep" > dep-linux-amd64.sha256 && \
+# 	sha256sum -c dep-linux-amd64.sha256
+# endif
+# 	@chmod +x $(DEP_BIN)
+
+$(VENDOR_DIR): Gopkg.toml Gopkg.lock
+	@echo "checking dependencies..."
+	@$(DEP_BIN) ensure -v 
+
+.PHONY: analyze-go-code
+## Run a complete static code analysis using the following tools: golint, gocyclo and go-vet.
+analyze-go-code: golint gocyclo govet
+
+# Build go tool to analysis the code
+$(GOLINT_BIN):
+	cd $(VENDOR_DIR)/github.com/golang/lint/golint && go build -v
+
+## Run gocyclo analysis over the code.
+golint: $(GOLINT_BIN)
+	$(info >>--- RESULTS: GOLINT CODE ANALYSIS ---<<)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude || true;)
+
+$(GOCYCLO_BIN):
+	cd $(VENDOR_DIR)/github.com/fzipp/gocyclo && go build -v
+
+## Run gocyclo analysis over the code.
+gocyclo: $(GOCYCLO_BIN)
+	$(info >>--- RESULTS: GOCYCLO CODE ANALYSIS ---<<)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOCYCLO_BIN) -over 10 $d | grep -vEf .golint_exclude || true;)
+
+## Run go vet analysis over the code.
+govet:
+	$(info >>--- RESULTS: GO VET CODE ANALYSIS ---<<)
+	@$(foreach d,$(GOANALYSIS_DIRS),go tool vet --all $d/*.go 2>&1;)
 
 .PHONY: build
 ## build all packages
@@ -158,71 +226,3 @@ endif
 ifndef DEP_BIN
 	$(error The "$(DEP_BIN_NAME)" executable could not be found in your PATH)
 endif
-
-
-#-------------------------------------------------------------------------------
-# Normal test targets
-#
-# These test targets are the ones that will be invoked from the outside. If
-# they are called and the artifacts already exist, then the artifacts will
-# first be cleaned and recreated. This ensures that the tests are always
-# executed.
-#-------------------------------------------------------------------------------
-
-# By default reduce the amount of log output from tests
-F8_LOG_LEVEL ?= error
-
-# Output directory for coverage information
-COV_DIR = $(TMP_PATH)/coverage
-
-# Files that combine package coverages for unit- and integration-tests separately
-COV_PATH_UNIT = $(TMP_PATH)/coverage.unit.mode-$(COVERAGE_MODE)
-COV_PATH_INTEGRATION = $(TMP_PATH)/coverage.integration.mode-$(COVERAGE_MODE)
-
-# File that stores overall coverge for all packages and unit- integration- and remote-tests
-COV_PATH_OVERALL = $(TMP_PATH)/coverage.mode-$(COVERAGE_MODE)
-
-# This pattern excludes some folders from the coverage calculation (see grep -v)
-ALL_PKGS_EXCLUDE_PATTERN = "vendor\|account\/tenant\|app\'\|tool\/cli\|design\|client\|test"
-
-# This pattern excludes some folders from the go code analysis
-GOANALYSIS_PKGS_EXCLUDE_PATTERN="vendor|account/tenant|app|client|tool/cli"
-GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS_EXCLUDE_PATTERN))
-
-
-.PHONY: test-all
-## Runs test-unit and test-integration targets.
-test-all: prebuild-check test-unit test-integration test-remote
-
-.PHONY: test-unit
-## Runs the unit tests and produces coverage files for each package.
-test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
-
-.PHONY: test-unit-no-coverage
-## Runs the unit tests and WITHOUT producing coverage files for each package.
-test-unit-no-coverage: prebuild-check $(SOURCES)
-	$(call log-info,"Running test: $@")
-	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_UNIT_TEST=1 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
-
-.PHONY: test-unit-no-coverage-junit
-test-unit-no-coverage-junit: prebuild-check ${GO_JUNIT_BIN} ${TMP_PATH}
-	bash -c "set -o pipefail; make test-unit-no-coverage 2>&1 | tee >(${GO_JUNIT_BIN} > ${TMP_PATH}/junit.xml)"
-
-.PHONY: test-integration
-## Runs the integration tests and produces coverage files for each package.
-## Make sure you ran "make integration-test-env-prepare" before you run this target.
-test-integration: prebuild-check clean-coverage-integration migrate-database $(COV_PATH_INTEGRATION)
-
-.PHONY: test-integration-no-coverage
-## Runs the integration tests WITHOUT producing coverage files for each package.
-## Make sure you ran "make integration-test-env-prepare" before you run this target.
-test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
-	$(call log-info,"Running test: $@")
-	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
-
-test-integration-benchmark: prebuild-check migrate-database $(SOURCES)
-	$(call log-info,"Running benchmarks: $@")
-	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test -run=^$$ -bench=. -cpu 1,2,4 -test.benchmem $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES) | grep -E "Bench|allocs"
