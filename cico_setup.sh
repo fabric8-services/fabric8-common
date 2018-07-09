@@ -60,9 +60,9 @@ function prepare() {
   # Download Go dependencies
   make docker-deps
   # Check code for style violations (vet, etc).
-  make docker-analyze-go-code
+  # make docker-analyze-go-code
   # Take Goa designs and generate code with it.
-  make docker-generate
+  # make docker-generate
   # Build the wit and wit-cli binary
   make docker-build
   echo 'CICO: Preparation complete'
@@ -70,15 +70,15 @@ function prepare() {
 
 function run_tests_without_coverage() {
   make docker-test-unit-no-coverage
-  make integration-test-env-prepare
-  trap cleanup_env EXIT
+  # make integration-test-env-prepare
+  # trap cleanup_env EXIT
 
-  # Check that postgresql container is healthy
-  check_postgres_healthiness
+  # # Check that postgresql container is healthy
+  # check_postgres_healthiness
 
-  make docker-test-migration
-  make docker-test-integration-no-coverage
-  make docker-test-remote-no-coverage
+  # make docker-test-migration
+  # make docker-test-integration-no-coverage
+  # make docker-test-remote-no-coverage
   echo "CICO: ran tests without coverage"
 }
 
@@ -106,25 +106,25 @@ function check_postgres_healthiness(){
 function run_tests_with_coverage() {
   # Run the unit tests that generate coverage information
   make docker-test-unit
-  make integration-test-env-prepare
-  trap cleanup_env EXIT
+  # make integration-test-env-prepare
+  # trap cleanup_env EXIT
 
-  # Check that postgresql container is healthy
-  check_postgres_healthiness
+  # # Check that postgresql container is healthy
+  # check_postgres_healthiness
 
-  # Run the integration tests that generate coverage information
-  make docker-test-migration
-  make docker-test-integration
+  # # Run the integration tests that generate coverage information
+  # make docker-test-migration
+  # make docker-test-integration
 
-  # Run the remote tests that generate coverage information
-  make docker-test-remote
+  # # Run the remote tests that generate coverage information
+  # make docker-test-remote
 
   # Output coverage
   make docker-coverage-all
 
   # Upload coverage to codecov.io
   cp tmp/coverage.mode* coverage.txt
-  bash <(curl -s https://codecov.io/bash) -X search -f coverage.txt -t ad12dad7-ebdc-47bc-a016-8c05fa7356bc #-X fix
+  bash <(curl -s https://codecov.io/bash) -X search -f coverage.txt -t e0e851ea-3abc-44fe-86a4-3d3559e35e46 #-X fix
 
   echo "CICO: ran tests and uploaded coverage"
 }
