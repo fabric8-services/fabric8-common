@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/goadesign/goa"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
@@ -67,7 +69,8 @@ func TestReqDurationMetric(t *testing.T) {
 	// validate
 	reqMetric, _ := reqDuration.GetMetricWithLabelValues(post, dummy, "2xx")
 	m := &dto.Metric{}
-	reqMetric.Write(m)
+	err := reqMetric.Write(m)
+	require.NoError(t, err)
 	checkHistogram(t, m, uint64(len(reqTimes)), expectedBound, expectedCnt)
 }
 
@@ -91,7 +94,8 @@ func TestResSizeMetric(t *testing.T) {
 	// validate
 	reqMetric, _ := resSize.GetMetricWithLabelValues(get, dummy, "2xx")
 	m := &dto.Metric{}
-	reqMetric.Write(m)
+	err := reqMetric.Write(m)
+	require.NoError(t, err)
 	checkHistogram(t, m, uint64(len(resSizes)), expectedBound, expectedCnt)
 }
 
@@ -115,7 +119,8 @@ func TestReqSizeMetric(t *testing.T) {
 	// validate
 	reqMetric, _ := reqSize.GetMetricWithLabelValues(post, dummy, "2xx")
 	m := &dto.Metric{}
-	reqMetric.Write(m)
+	err := reqMetric.Write(m)
+	require.NoError(t, err)
 	checkHistogram(t, m, uint64(len(reqSizes)), expectedBound, expectedCnt)
 }
 
@@ -135,7 +140,8 @@ func TestCustomBucket1(t *testing.T) {
 	// validate
 	reqMetric, _ := reqSize.GetMetricWithLabelValues(post, dummy, "2xx")
 	m := &dto.Metric{}
-	reqMetric.Write(m)
+	err := reqMetric.Write(m)
+	require.NoError(t, err)
 	checkHistogram(t, m, uint64(len(reqSizes)), expectedBound, expectedCnt)
 }
 
@@ -159,7 +165,8 @@ func TestCustomBucket2(t *testing.T) {
 	// validate
 	reqMetric, _ := resSize.GetMetricWithLabelValues(get, dummy, "2xx")
 	m := &dto.Metric{}
-	reqMetric.Write(m)
+	err := reqMetric.Write(m)
+	require.NoError(t, err)
 	checkHistogram(t, m, uint64(len(resSizes)), expectedBound, expectedCnt)
 }
 func TestLabelsVal(t *testing.T) {
@@ -266,7 +273,8 @@ func createCtx(ctrl *goa.Controller, reqMethod string, resCode int) context.Cont
 func checkCounter(t *testing.T, method, entity, code string, expected int64) {
 	reqMetric, _ := reqCnt.GetMetricWithLabelValues(method, entity, code)
 	m := &dto.Metric{}
-	reqMetric.Write(m)
+	err := reqMetric.Write(m)
+	require.NoError(t, err)
 	actual := int64(m.Counter.GetValue())
 	if actual != expected {
 		t.Errorf("metric(\"%s\", \"%s\", \"%s\"), want: %d, got: %d", entity, method, code, expected, actual)
