@@ -7,8 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/fabric8-services/fabric8-auth/log"
-	"github.com/fabric8-services/fabric8-auth/rest"
+	"github.com/fabric8-services/fabric8-common/log"
+	"github.com/fabric8-services/fabric8-common/rest"
 
 	"gopkg.in/square/go-jose.v2"
 )

@@ -14,15 +14,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabric8-services/fabric8-auth/account"
-	"github.com/fabric8-services/fabric8-auth/account/repository"
-	authclient "github.com/fabric8-services/fabric8-auth/client"
-	autherrors "github.com/fabric8-services/fabric8-auth/errors"
-	"github.com/fabric8-services/fabric8-auth/goasupport"
-	"github.com/fabric8-services/fabric8-auth/log"
-	"github.com/fabric8-services/fabric8-auth/rest"
-	"github.com/fabric8-services/fabric8-auth/token/jwk"
-	"github.com/fabric8-services/fabric8-auth/token/tokencontext"
+	"github.com/fabric8-services/fabric8-common/account"
+	"github.com/fabric8-services/fabric8-common/account/repository"
+	authclient "github.com/fabric8-services/fabric8-common/client"
+	autherrors "github.com/fabric8-services/fabric8-common/errors"
+	"github.com/fabric8-services/fabric8-common/goasupport"
+	"github.com/fabric8-services/fabric8-common/log"
+	"github.com/fabric8-services/fabric8-common/rest"
+	"github.com/fabric8-services/fabric8-common/token/jwk"
+	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -39,7 +39,7 @@ const (
 
 	// Service Account Names
 
-	Auth               = "fabric8-auth"
+	Auth               = "fabric8-cluster"
 	WIT                = "fabric8-wit"
 	OsoProxy           = "fabric8-oso-proxy"
 	Tenant             = "fabric8-tenant"

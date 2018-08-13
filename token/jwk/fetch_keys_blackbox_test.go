@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-auth/test"
-	testsuite "github.com/fabric8-services/fabric8-auth/test/suite"
-	"github.com/fabric8-services/fabric8-auth/test/token"
-	"github.com/fabric8-services/fabric8-auth/token/jwk"
+	"github.com/fabric8-services/fabric8-common/test"
+	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
+	"github.com/fabric8-services/fabric8-common/test/token"
+	"github.com/fabric8-services/fabric8-common/token/jwk"
 
 	"bytes"
 	"io/ioutil"

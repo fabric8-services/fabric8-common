@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
-	config "github.com/fabric8-services/fabric8-auth/configuration"
-	"github.com/fabric8-services/fabric8-auth/resource"
-	testsuite "github.com/fabric8-services/fabric8-auth/test/suite"
+	config "github.com/fabric8-services/fabric8-common/configuration"
+	"github.com/fabric8-services/fabric8-common/resource"
+	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
 
 	"github.com/dgrijalva/jwt-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -63,7 +63,7 @@ func (s *TestWhiteboxTokenSuite) tokenManagerWithAuthURL() (*tokenManager, strin
 func (s *TestWhiteboxTokenSuite) TestAuthServiceAccountGeneratedOK() {
 	m, authURL := s.tokenManagerWithAuthURL()
 	tokenString := m.AuthServiceAccountToken()
-	s.checkServiceAccountToken(tokenString, AuthServiceAccountID, "fabric8-auth", authURL)
+	s.checkServiceAccountToken(tokenString, AuthServiceAccountID, "fabric8-cluster", authURL)
 
 }
 
@@ -212,7 +212,7 @@ func (s *TestWhiteboxTokenSuite) TestAuthServiceAccount() {
 
 	claims := token.Claims.(jwt.MapClaims)
 	require.Equal(s.T(), AuthServiceAccountID, claims["sub"])
-	require.Equal(s.T(), "fabric8-auth", claims["service_accountname"])
+	require.Equal(s.T(), "fabric8-cluster", claims["service_accountname"])
 	require.Equal(s.T(), []interface{}{"uma_protection"}, claims["scopes"])
 	jti, ok := claims["jti"].(string)
 	require.True(s.T(), ok)

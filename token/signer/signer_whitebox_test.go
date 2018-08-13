@@ -1,9 +1,9 @@
 package signer
 
 import (
-	testsuite "github.com/fabric8-services/fabric8-auth/test/suite"
-	tokentestsupport "github.com/fabric8-services/fabric8-auth/test/token"
-	tokenutil "github.com/fabric8-services/fabric8-auth/token"
+	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
+	tokentestsupport "github.com/fabric8-services/fabric8-common/test/token"
+	tokenutil "github.com/fabric8-services/fabric8-common/token"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"net/http"
