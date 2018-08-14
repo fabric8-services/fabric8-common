@@ -19,10 +19,10 @@ import (
 	authclient "github.com/fabric8-services/fabric8-common/client"
 	autherrors "github.com/fabric8-services/fabric8-common/errors"
 	"github.com/fabric8-services/fabric8-common/goasupport"
-	"github.com/fabric8-services/fabric8-common/log"
 	"github.com/fabric8-services/fabric8-common/rest"
 	"github.com/fabric8-services/fabric8-common/token/jwk"
 	"github.com/fabric8-services/fabric8-common/token/tokencontext"
+	"github.com/fabric8-services/fabric8-common/log"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
