@@ -21,7 +21,13 @@ import (
 const (
 	// Service Account Names
 
-	Auth = "fabric8-auth"
+	Auth         = "fabric8-auth"
+	WIT          = "fabric8-wit"
+	OsoProxy     = "fabric8-oso-proxy"
+	Tenant       = "fabric8-tenant"
+	Notification = "fabric8-notification"
+	JenkinsIdler = "fabric8-jenkins-idler"
+	JenkinsProxy = "fabric8-jenkins-proxy"
 )
 
 // configuration represents configuration needed to construct a token manager
@@ -56,6 +62,7 @@ type Manager interface {
 	ParseTokenWithMapClaims(ctx context.Context, tokenString string) (jwt.MapClaims, error)
 	PublicKey(keyID string) *rsa.PublicKey
 	AuthServiceAccountToken() string
+	AddLoginRequiredHeader(rw http.ResponseWriter)
 }
 
 type tokenManager struct {
@@ -183,6 +190,13 @@ func (mgm *tokenManager) Parse(ctx context.Context, tokenString string) (*jwt.To
 		return nil, errs.NewUnauthorizedError(err.Error())
 	}
 	return jwtToken, nil
+}
+
+// AddLoginRequiredHeader adds "WWW-Authenticate: LOGIN" header to the response
+func (mgm *tokenManager) AddLoginRequiredHeader(rw http.ResponseWriter) {
+	rw.Header().Add("Access-Control-Expose-Headers", "WWW-Authenticate")
+	loginURL := mgm.config.GetAuthServiceURL() + "/api/login"
+	rw.Header().Set("WWW-Authenticate", fmt.Sprintf("LOGIN url=%s, description=\"re-login is required\"", loginURL))
 }
 
 // IsSpecificServiceAccount checks if the request is done by a service account listed in the names param
