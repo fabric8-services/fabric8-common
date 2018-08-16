@@ -33,6 +33,8 @@ type TestTokenSuite struct {
 	testsuite.UnitTestSuite
 }
 
+// TODO Test that there is no test key if not run in Dev Mode!!!
+
 func (s *TestTokenSuite) TestGenerateUserTokenForIdentity() {
 	s.checkGenerateUserTokenForIdentity(false)
 	s.checkGenerateUserTokenForIdentity(true) // Offline token

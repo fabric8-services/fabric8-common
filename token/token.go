@@ -34,6 +34,7 @@ const (
 type configuration interface {
 	GetAuthServiceURL() string
 	GetAuthKeysPath() string
+	GetDevModePrivateKey() []byte
 }
 
 // TokenClaims represents access token claims
@@ -98,6 +99,19 @@ func NewManager(config configuration) (Manager, error) {
 		}, "Public key added")
 	}
 
+	devModePrivateKey := config.GetDevModePrivateKey()
+	if devModePrivateKey != nil {
+		// Add the public key which will be used to verify tokens generated in Dev Mode
+		rsaKey, err := jwt.ParseRSAPrivateKeyFromPEM(devModePrivateKey)
+		if err != nil {
+			return nil, err
+		}
+		tm.publicKeysMap["test-key"] = &rsaKey.PublicKey
+		tm.publicKeys = append(tm.publicKeys, &jwk.PublicKey{KeyID: "test-key", Key: &rsaKey.PublicKey})
+		log.Info(nil, map[string]interface{}{
+			"kid": "test-key",
+		}, "Public key added")
+	}
 	return tm, nil
 }
 
