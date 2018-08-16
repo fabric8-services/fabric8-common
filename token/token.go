@@ -62,15 +62,13 @@ type Manager interface {
 	ParseToken(ctx context.Context, tokenString string) (*TokenClaims, error)
 	ParseTokenWithMapClaims(ctx context.Context, tokenString string) (jwt.MapClaims, error)
 	PublicKey(keyID string) *rsa.PublicKey
-	AuthServiceAccountToken() string
 	AddLoginRequiredHeader(rw http.ResponseWriter)
 }
 
 type tokenManager struct {
-	publicKeysMap       map[string]*rsa.PublicKey
-	publicKeys          []*jwk.PublicKey
-	serviceAccountToken string
-	config              configuration
+	publicKeysMap map[string]*rsa.PublicKey
+	publicKeys    []*jwk.PublicKey
+	config        configuration
 }
 
 // NewManager returns a new token Manager for handling tokens
@@ -187,11 +185,6 @@ func (mgm *tokenManager) PublicKeys() []*rsa.PublicKey {
 		keys = append(keys, key.Key)
 	}
 	return keys
-}
-
-// AuthServiceAccountToken returns the service account token which authenticates the Auth service
-func (mgm *tokenManager) AuthServiceAccountToken() string {
-	return mgm.serviceAccountToken
 }
 
 func (mgm *tokenManager) Parse(ctx context.Context, tokenString string) (*jwt.Token, error) {
