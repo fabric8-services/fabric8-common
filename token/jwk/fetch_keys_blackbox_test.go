@@ -7,7 +7,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-common/test"
 	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
-	"github.com/fabric8-services/fabric8-common/test/token"
 	"github.com/fabric8-services/fabric8-common/token/jwk"
 
 	"bytes"
@@ -44,7 +43,7 @@ func (s *TestFetchKeysSuite) TestFetchKeys() {
 	require.NotNil(s.T(), loadedKeys)
 	require.Len(s.T(), loadedKeys, 3)
 	for _, key := range loadedKeys {
-		pk := token.TokenManager.PublicKey(key.KeyID)
+		pk := test.TokenManager.PublicKey(key.KeyID)
 		require.NotNil(s.T(), pk)
 		require.Equal(s.T(), pk, key.Key)
 	}
