@@ -36,6 +36,9 @@ func NewIdentity() *Identity {
 
 // EmbedUserTokenInContext generates a token for the given identity and embed it into the context along with token manager
 func EmbedUserTokenInContext(ctx context.Context, identity *Identity) context.Context {
+	if identity == nil {
+		identity = NewIdentity()
+	}
 	_, token := GenerateSignedUserToken(identity)
 	return embedTokenInContext(ctx, token)
 }
