@@ -22,11 +22,11 @@ type WhiteBoxTestTokenSuite struct {
 
 func (s *WhiteBoxTestTokenSuite) TestNoTestKeyLoadedIfRunInNotDevMode() {
 	// Disable Dev Mode
-	existingEnvironment := os.Getenv("CLUSTER_DEVELOPER_MODE_ENABLED")
+	existingEnvironment := os.Getenv("F8CLUSTER_DEVELOPER_MODE_ENABLED")
 	defer func() {
-		os.Setenv("CLUSTER_DEVELOPER_MODE_ENABLED", existingEnvironment)
+		os.Setenv("F8CLUSTER_DEVELOPER_MODE_ENABLED", existingEnvironment)
 	}()
-	os.Unsetenv("CLUSTER_DEVELOPER_MODE_ENABLED")
+	os.Unsetenv("F8CLUSTER_DEVELOPER_MODE_ENABLED")
 
 	c, err := config.GetConfigurationData()
 	require.NoError(s.T(), err)
