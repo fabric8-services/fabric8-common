@@ -96,7 +96,7 @@ func generateUserToken(identity *Identity) *jwt.Token {
 	claims["iat"] = iat
 	claims["typ"] = "Bearer"
 	claims["preferred_username"] = identity.Username
-	claims["sub"] = identity.ID
+	claims["sub"] = identity.ID.String()
 	claims["email"] = identity.Email
 
 	token.Header["kid"] = "test-key"
@@ -109,7 +109,7 @@ func generateServiceAccountToken(identity *Identity) *jwt.Token {
 	token := jwt.New(jwt.SigningMethodRS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["service_accountname"] = identity.Username
-	claims["sub"] = identity.ID
+	claims["sub"] = identity.ID.String()
 	claims["jti"] = uuid.NewV4().String()
 	claims["iat"] = time.Now().Unix()
 
