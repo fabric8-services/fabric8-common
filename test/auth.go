@@ -25,12 +25,14 @@ var TokenManager = newManager()
 type Identity struct {
 	ID       uuid.UUID
 	Username string
+	Email    string
 }
 
 func NewIdentity() *Identity {
 	return &Identity{
 		ID:       uuid.NewV4(),
-		Username: uuid.NewV4().String(),
+		Username: "testuser-" + uuid.NewV4().String(),
+		Email:    uuid.NewV4().String() + "@email.com",
 	}
 }
 
@@ -94,8 +96,8 @@ func generateUserToken(identity *Identity) *jwt.Token {
 	claims["iat"] = iat
 	claims["typ"] = "Bearer"
 	claims["preferred_username"] = identity.Username
-	claims["sub"] = identity.Username
-	claims["email"] = identity.Username
+	claims["sub"] = identity.ID
+	claims["email"] = identity.Email
 
 	token.Header["kid"] = "test-key"
 
