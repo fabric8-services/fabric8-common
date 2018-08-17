@@ -28,8 +28,6 @@ type TestTokenSuite struct {
 	testsuite.UnitTestSuite
 }
 
-// TODO Test that there is no test key if not run in Dev Mode!!!
-
 func (s *TestTokenSuite) TestNotAServiceAccountFails() {
 	ctx := createInvalidSAContext()
 	assert.False(s.T(), token.IsSpecificServiceAccount(ctx, "someName"))

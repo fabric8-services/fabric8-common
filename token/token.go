@@ -28,6 +28,8 @@ const (
 	Notification = "fabric8-notification"
 	JenkinsIdler = "fabric8-jenkins-idler"
 	JenkinsProxy = "fabric8-jenkins-proxy"
+
+	devModeKeyID = "test-key"
 )
 
 // configuration represents configuration needed to construct a token manager
@@ -107,7 +109,7 @@ func NewManager(config configuration) (Manager, error) {
 		tm.publicKeysMap["test-key"] = &rsaKey.PublicKey
 		tm.publicKeys = append(tm.publicKeys, &jwk.PublicKey{KeyID: "test-key", Key: &rsaKey.PublicKey})
 		log.Info(nil, map[string]interface{}{
-			"kid": "test-key",
+			"kid": devModeKeyID,
 		}, "Public key added")
 	}
 	return tm, nil
