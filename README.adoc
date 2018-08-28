@@ -4,7 +4,7 @@
 :toc-placement: preamble
 :sectnums:
 
-image:https://ci.centos.org/buildStatus/icon?job=devtools-fabric8-common-build-master[Jenkins,link="https://ci.centos.org/view/Devtools/job/devtools-fabric8-common-build-master/lastBuild/"]
+image:https://ci.centos.org/buildStatus/icon?job=devtools-fabric8-common-build-master-coverage[Jenkins,link="https://ci.centos.org/view/Devtools/job/devtools-fabric8-common-build-master-coverage/lastBuild/"]
 image:https://goreportcard.com/badge/github.com/fabric8-services/fabric8-common[Go Report Card, link="https://goreportcard.com/report/github.com/fabric8-services/fabric8-common"]
 image:https://godoc.org/github.com/fabric8-services/fabric8-common?status.png[GoDoc,link="https://godoc.org/github.com/fabric8-services/fabric8-common"]
 image:https://codecov.io/gh/fabric8-services/fabric8-common/branch/master/graph/badge.svg[Codecov.io,link="https://codecov.io/gh/fabric8-services/fabric8-common"]
