@@ -2,18 +2,22 @@ package sentry
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-common/login/tokencontext"
 	"github.com/fabric8-services/fabric8-common/resource"
 	testtoken "github.com/fabric8-services/fabric8-common/test/token"
+	"github.com/fabric8-services/fabric8-common/token"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/raven-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func failOnNoToken(t *testing.T) context.Context {
@@ -40,11 +44,35 @@ func validToken(t *testing.T, identityID string, identityUsername string) contex
 	ctx = goajwt.WithJWT(ctx, token)
 	return ctx
 }
-func Test_extractUserInfo(t *testing.T) {
+func TestExtractUserInfo(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	userID := uuid.NewV4()
 	username := "testuser"
+
+	InitializeSentryClient(nil,
+		WithUser(func(ctx context.Context) (*raven.User, error) {
+			m, err := token.ReadManagerFromContext(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			q := *m
+			token := goajwt.ContextJWT(ctx)
+			if token == nil {
+				return nil, fmt.Errorf("no token found in context")
+			}
+			t, err := q.ParseToken(ctx, token.Raw)
+			if err != nil {
+				return nil, err
+			}
+
+			return &raven.User{
+				Username: t.Username,
+				Email:    t.Email,
+				ID:       t.Subject,
+			}, nil
+		}))
 
 	tests := []struct {
 		name    string
@@ -80,7 +108,7 @@ func Test_extractUserInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := extractUserInfo(tt.ctx)
+			got, err := Sentry().userInfo(tt.ctx)
 			if tt.wantErr {
 				require.Error(t, err)
 				// if above assertion passes we don't need to continue
@@ -91,4 +119,27 @@ func Test_extractUserInfo(t *testing.T) {
 			require.Equalf(t, tt.want, got, "extractUserInfo() = %v, want %v", got, tt.want)
 		})
 	}
+}
+
+func TestDSN(t *testing.T) {
+	// Set default DSN via env var
+	defaultProject:=uuid.NewV4()
+	dsn:= fmt.Sprintf("https://%s:%s@test.io/%s", uuid.NewV4(), uuid.NewV4(), defaultProject)
+	old:=os.Getenv("SENTRY_DSN")
+	os.Setenv("SENTRY_DSN", dsn)
+	defer os.Setenv("SENTRY_DSN", old)
+
+	// Init DSN explicitly
+	project:=uuid.NewV4()
+	dsn= fmt.Sprintf("https://%s:%s@test.io/%s", uuid.NewV4(), uuid.NewV4(), project)
+	InitializeSentryClient(&dsn)
+
+	// The env var is not used. Explicitly set DSN is used instead.
+	assert.Equal(t, fmt.Sprintf("https://test.io/api/%s/store/", project), Sentry().c.URL())
+
+	// Init the default DSN
+	InitializeSentryClient(nil)
+
+	// The DSN from the env var is used
+	assert.Equal(t, fmt.Sprintf("https://test.io/api/%s/store/", defaultProject), Sentry().c.URL())
 }

@@ -2,14 +2,11 @@ package sentry
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/fabric8-services/fabric8-common/log"
-	"github.com/fabric8-services/fabric8-common/token"
 
 	"github.com/getsentry/raven-go"
-	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
 
 // client encapsulates client to Sentry service
@@ -17,6 +14,7 @@ import (
 type client struct {
 	c       *raven.Client
 	sendErr chan func()
+	userInfo func(ctx context.Context) (*raven.User, error)
 }
 
 var (
@@ -30,8 +28,15 @@ func Sentry() *client {
 
 // InitializeSentryClient initializes sentry client. This function returns
 // function that can be used to close the sentry client and error.
-func InitializeSentryClient(options ...func(*client)) (func(), error) {
-	c, err := raven.New(os.Getenv("SENTRY_DSN"))
+// sentryDSN param is optional. If null then DSN set via SENTRY_DSN env var will be used
+func InitializeSentryClient(sentryDSN *string, options ...func(*client)) (func(), error) {
+	var dsn string
+	if sentryDSN!=nil {
+		dsn = *sentryDSN
+	} else {
+		dsn = os.Getenv("SENTRY_DSN")
+	}
+	c, err := raven.New(dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +54,13 @@ func InitializeSentryClient(options ...func(*client)) (func(), error) {
 	return func() {
 		close(sentryClient.sendErr)
 	}, nil
+}
+
+// WithUser helps to set user context
+func WithUser(userInfo func(ctx context.Context) (*raven.User, error)) func(*client) {
+	return func(c *client) {
+		c.userInfo = userInfo
+	}
 }
 
 // WithRelease helps you set release/commit of currently running
@@ -85,7 +97,10 @@ func (c *client) CaptureError(ctx context.Context, err error) {
 	}
 	// Extract user information. Ignoring error here but then before using the
 	// object user make sure to check if it wasn't nil.
-	user, _ := extractUserInfo(ctx)
+	var user *raven.User
+	if c.userInfo!=nil {
+		user, _ = c.userInfo(ctx)
+	}
 	reqID := log.ExtractRequestID(ctx)
 
 	c.sendErr <- func() {
@@ -101,29 +116,4 @@ func (c *client) CaptureError(ctx context.Context, err error) {
 		c.c.CaptureError(err, additionalContext)
 		c.c.ClearContext()
 	}
-}
-
-// extractUserInfo reads the context and returns sentry understandable
-// user object's reference and error
-func extractUserInfo(ctx context.Context) (*raven.User, error) {
-	m, err := token.ReadManagerFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	q := *m
-	token := goajwt.ContextJWT(ctx)
-	if token == nil {
-		return nil, fmt.Errorf("no token found in context")
-	}
-	t, err := q.ParseToken(ctx, token.Raw)
-	if err != nil {
-		return nil, err
-	}
-
-	return &raven.User{
-		Username: t.Username,
-		Email:    t.Email,
-		ID:       t.Subject,
-	}, nil
 }
