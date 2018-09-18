@@ -12,8 +12,8 @@ import (
 // client encapsulates client to Sentry service
 // also has mutex which controls access to the client
 type client struct {
-	c       *raven.Client
-	sendErr chan func()
+	c        *raven.Client
+	sendErr  chan func()
 	userInfo func(ctx context.Context) (*raven.User, error)
 }
 
@@ -31,7 +31,7 @@ func Sentry() *client {
 // sentryDSN param is optional. If null then DSN set via SENTRY_DSN env var will be used
 func InitializeSentryClient(sentryDSN *string, options ...func(*client)) (func(), error) {
 	var dsn string
-	if sentryDSN!=nil {
+	if sentryDSN != nil {
 		dsn = *sentryDSN
 	} else {
 		dsn = os.Getenv("SENTRY_DSN")
@@ -98,7 +98,7 @@ func (c *client) CaptureError(ctx context.Context, err error) {
 	// Extract user information. Ignoring error here but then before using the
 	// object user make sure to check if it wasn't nil.
 	var user *raven.User
-	if c.userInfo!=nil {
+	if c.userInfo != nil {
 		user, _ = c.userInfo(ctx)
 	}
 	reqID := log.ExtractRequestID(ctx)

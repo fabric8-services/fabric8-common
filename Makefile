@@ -53,6 +53,11 @@ BUILD_TIME=`date -u '+%Y-%m-%dT%H:%M:%SZ'`
 ## Default target - fetch dependencies and build.
 all: prebuild-check deps build
 
+.PHONY: format-go-code
+## Formats any go file that differs from gofmt's style
+format-go-code: prebuild-check
+	@gofmt -s -l -w ${GOFORMAT_FILES}
+	
 .PHONY: help
 # Based on https://gist.github.com/rcmachado/af3db315e31383502660
 ## display this help text.

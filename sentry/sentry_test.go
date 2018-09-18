@@ -16,8 +16,8 @@ import (
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func failOnNoToken(t *testing.T) context.Context {
@@ -51,7 +51,7 @@ func TestExtractUserInfo(t *testing.T) {
 	userID := uuid.NewV4()
 	username := "testuser"
 
-	_, err:=InitializeSentryClient(nil,
+	_, err := InitializeSentryClient(nil,
 		WithUser(func(ctx context.Context) (*raven.User, error) {
 			m, err := token.ReadManagerFromContext(ctx)
 			if err != nil {
@@ -125,23 +125,23 @@ func TestExtractUserInfo(t *testing.T) {
 
 func TestDSN(t *testing.T) {
 	// Set default DSN via env var
-	defaultProject:=uuid.NewV4()
-	dsn:= fmt.Sprintf("https://%s:%s@test.io/%s", uuid.NewV4(), uuid.NewV4(), defaultProject)
-	old:=os.Getenv("SENTRY_DSN")
+	defaultProject := uuid.NewV4()
+	dsn := fmt.Sprintf("https://%s:%s@test.io/%s", uuid.NewV4(), uuid.NewV4(), defaultProject)
+	old := os.Getenv("SENTRY_DSN")
 	os.Setenv("SENTRY_DSN", dsn)
 	defer os.Setenv("SENTRY_DSN", old)
 
 	// Init DSN explicitly
-	project:=uuid.NewV4()
-	dsn= fmt.Sprintf("https://%s:%s@test.io/%s", uuid.NewV4(), uuid.NewV4(), project)
-	_, err:=InitializeSentryClient(&dsn)
+	project := uuid.NewV4()
+	dsn = fmt.Sprintf("https://%s:%s@test.io/%s", uuid.NewV4(), uuid.NewV4(), project)
+	_, err := InitializeSentryClient(&dsn)
 	require.NoError(t, err)
 
 	// The env var is not used. Explicitly set DSN is used instead.
 	assert.Equal(t, fmt.Sprintf("https://test.io/api/%s/store/", project), Sentry().c.URL())
 
 	// Init the default DSN
-	_, err=InitializeSentryClient(nil)
+	_, err = InitializeSentryClient(nil)
 	require.NoError(t, err)
 
 	// The DSN from the env var is used
