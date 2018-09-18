@@ -66,6 +66,35 @@ func TestProxy(t *testing.T) {
 	assert.Equal(t, veryLongBody, body)
 }
 
+func TestFailsIfResponseDataIsMissing(t *testing.T) {
+	// Missing ResponseData
+	ctx := context.Background()
+	err := route(ctx, "http://auth", nil)
+	require.Error(t, err)
+	assert.Equal(t, "unable to get response from context", err.Error())
+}
+
+func TestFailsIfInvalidTargetURL(t *testing.T) {
+	// Invalid URL
+	rw := httptest.NewRecorder()
+	u, err := url.Parse("http://domain.org/api")
+	require.NoError(t, err)
+	req, err := http.NewRequest("GET", u.String(), nil)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "ProxyTest"), rw, req, url.Values{})
+
+	err = route(goaCtx, "%@#", nil)
+	require.Error(t, err)
+	assert.Equal(t, "parse %@: invalid URL escape \"%@\"", err.Error())
+}
+
+func TestSingleJoiningSlash(t *testing.T) {
+	assert.Equal(t, "abc/xyz", singleJoiningSlash("abc", "xyz"))
+	assert.Equal(t, "abc/xyz", singleJoiningSlash("abc", "/xyz"))
+}
+
 type statusContext struct {
 	context.Context
 	*goa.ResponseData
