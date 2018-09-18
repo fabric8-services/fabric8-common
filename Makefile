@@ -46,8 +46,18 @@ COMMIT := $(COMMIT)-dirty
 endif
 BUILD_TIME=`date -u '+%Y-%m-%dT%H:%M:%SZ'`
 
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := all
 
+# If nothing was specified, run all targets as if in a fresh clone
+.PHONY: all
+## Default target - fetch dependencies and build.
+all: prebuild-check deps build
+
+.PHONY: format-go-code
+## Formats any go file that differs from gofmt's style
+format-go-code: prebuild-check
+	@gofmt -s -l -w ${GOFORMAT_FILES}
+	
 .PHONY: help
 # Based on https://gist.github.com/rcmachado/af3db315e31383502660
 ## display this help text.
