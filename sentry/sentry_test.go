@@ -44,13 +44,14 @@ func validToken(t *testing.T, identityID string, identityUsername string) contex
 	ctx = goajwt.WithJWT(ctx, token)
 	return ctx
 }
+
 func TestExtractUserInfo(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	userID := uuid.NewV4()
 	username := "testuser"
 
-	InitializeSentryClient(nil,
+	_, err:=InitializeSentryClient(nil,
 		WithUser(func(ctx context.Context) (*raven.User, error) {
 			m, err := token.ReadManagerFromContext(ctx)
 			if err != nil {
@@ -73,6 +74,7 @@ func TestExtractUserInfo(t *testing.T) {
 				ID:       t.Subject,
 			}, nil
 		}))
+	require.NoError(t, err)
 
 	tests := []struct {
 		name    string
@@ -132,13 +134,15 @@ func TestDSN(t *testing.T) {
 	// Init DSN explicitly
 	project:=uuid.NewV4()
 	dsn= fmt.Sprintf("https://%s:%s@test.io/%s", uuid.NewV4(), uuid.NewV4(), project)
-	InitializeSentryClient(&dsn)
+	_, err:=InitializeSentryClient(&dsn)
+	require.NoError(t, err)
 
 	// The env var is not used. Explicitly set DSN is used instead.
 	assert.Equal(t, fmt.Sprintf("https://test.io/api/%s/store/", project), Sentry().c.URL())
 
 	// Init the default DSN
-	InitializeSentryClient(nil)
+	_, err=InitializeSentryClient(nil)
+	require.NoError(t, err)
 
 	// The DSN from the env var is used
 	assert.Equal(t, fmt.Sprintf("https://test.io/api/%s/store/", defaultProject), Sentry().c.URL())
