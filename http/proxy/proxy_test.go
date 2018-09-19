@@ -44,7 +44,8 @@ func TestProxy(t *testing.T) {
 
 	assert.Equal(t, 201, rw.Code)
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
-	body := readBody(rw.Result().Body)
+	body, err := readBody(rw.Result().Body)
+	require.NoError(t, err)
 	assert.Equal(t, veryLongBody, body)
 
 	// POST, gzipped, changed target path
@@ -62,7 +63,8 @@ func TestProxy(t *testing.T) {
 
 	assert.Equal(t, 201, rw.Code)
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
-	body = readBody(rw.Result().Body)
+	body, err = readBody(rw.Result().Body)
+	require.NoError(t, err)
 	assert.Equal(t, veryLongBody, body)
 }
 
@@ -110,7 +112,10 @@ func newStatusContext(ctx context.Context, r *http.Request) *statusContext {
 
 func startServer() {
 	http.HandleFunc("/api", handlerGzip)
-	http.ListenAndServe(":8889", nil)
+	err := http.ListenAndServe(":8889", nil)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func waitForServer(t *testing.T) {
@@ -169,8 +174,8 @@ func generateLongBody() string {
 	return body
 }
 
-func readBody(body io.ReadCloser) string {
+func readBody(body io.ReadCloser) (string, error) {
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(body)
-	return buf.String()
+	_, err := buf.ReadFrom(body)
+	return buf.String(), err
 }
