@@ -1,4 +1,4 @@
-package api
+package jsonapi
 
 import (
 	"context"
