@@ -6,8 +6,6 @@ INSTALL_PREFIX=$(CUR_DIR)/bin
 VENDOR_DIR=vendor
 SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
-DESIGN_DIR=design
-DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 
 # declares variable that are OS-sensitive
 ifeq ($(OS),Windows_NT)
