@@ -8,11 +8,7 @@ import (
 )
 
 func TestString(t *testing.T) {
-	var strVal string
-	strVal = "mystring"
-
-	var strPtr *string
-	strPtr = ptr.String(strVal)
-
+	var strVal string = "mystring"
+	var strPtr *string = ptr.String(strVal)
 	assert.Equal(t, strVal, *strPtr)
 }
