@@ -29,6 +29,13 @@ const (
 	varDeveloperModeEnabled = "developer.mode.enabled"
 	varAuthURL              = "auth.url"
 	varKeysTokenPath        = "auth.keys.token.path"
+	varEnvironment          = "environment"
+	varLogJSON              = "log.json"
+	varHTTPAddress          = "http.address"
+	varMetricsHTTPAddress   = "metrics.http.address"
+	varDiagnoseHTTPAddress  = "diagnose.http.address"
+
+	defaultLogLevel = "info"
 
 	// DevModeRsaPrivateKey for signing JWT Tokens in Dev Mode
 	// ssh-keygen -f alm_rsa
@@ -77,7 +84,7 @@ func New(configFilePath string) (*Registry, error) {
 	c.v.AutomaticEnv()
 	c.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	c.v.SetTypeByDefaultValue(true)
-	// c.setConfigDefaults()
+	c.setConfigDefaults()
 
 	if configFilePath != "" {
 		c.v.SetConfigType("yaml")
@@ -106,6 +113,13 @@ func Get() (*Registry, error) {
 	return cd, err
 }
 
+func (c *Registry) setConfigDefaults() {
+	c.v.SetDefault(varLogLevel, defaultLogLevel)
+	c.v.SetDefault(varDeveloperModeEnabled, false)
+	c.v.SetDefault(varHTTPAddress, "0.0.0.0:8080")
+	c.v.SetDefault(varMetricsHTTPAddress, "0.0.0.0:8080")
+}
+
 // GetLogLevel returns the loggging level (as set via config file or environment variable)
 func (c *Registry) GetLogLevel() string {
 	return c.v.GetString(varLogLevel)
@@ -125,4 +139,49 @@ func (c *Registry) GetKeysTokenPath() string {
 // GetAuthServiceURL returns the Auth Service URL
 func (c *Registry) GetAuthServiceURL() string {
 	return c.v.GetString(varAuthURL)
+}
+
+// GetEnvironment returns the current environment application is deployed in
+// like 'production', 'prod-preview', 'local', etc as the value of environment variable
+// `F8_ENVIRONMENT` is set.
+func (c *Registry) GetEnvironment() string {
+	if c.v.IsSet(varEnvironment) {
+		return c.v.GetString(varEnvironment)
+	}
+	return "local"
+}
+
+// IsLogJSON returns if we should log json format (as set via config file or environment variable)
+func (c *Registry) IsLogJSON() bool {
+	if c.v.IsSet(varLogJSON) {
+		return c.v.GetBool(varLogJSON)
+	}
+	if c.DeveloperModeEnabled() {
+		return false
+	}
+	return true
+}
+
+// GetHTTPAddress returns the HTTP address (as set via default, config file, or environment variable)
+// that the wit server binds to (e.g. "0.0.0.0:8080")
+func (c *Registry) GetHTTPAddress() string {
+	return c.v.GetString(varHTTPAddress)
+}
+
+// GetMetricsHTTPAddress returns the address the /metrics endpoing will be mounted.
+// By default GetMetricsHTTPAddress is the same as GetHTTPAddress
+func (c *Registry) GetMetricsHTTPAddress() string {
+	return c.v.GetString(varMetricsHTTPAddress)
+}
+
+// GetDiagnoseHTTPAddress returns the address of where to start the gops handler.
+// By default GetDiagnoseHTTPAddress is 127.0.0.1:0 in devMode, but turned off in prod mode
+// unless explicitly configured
+func (c *Registry) GetDiagnoseHTTPAddress() string {
+	if c.v.IsSet(varDiagnoseHTTPAddress) {
+		return c.v.GetString(varDiagnoseHTTPAddress)
+	} else if c.DeveloperModeEnabled() {
+		return "127.0.0.1:0"
+	}
+	return ""
 }
