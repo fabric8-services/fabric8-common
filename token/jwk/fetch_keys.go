@@ -46,7 +46,10 @@ func (l *KeyLoader) FetchKeys(keysEndpointURL string) ([]*PublicKey, error) {
 		return nil, err
 	}
 	defer rest.CloseResponse(res)
-	bodyString := rest.ReadBody(res.Body)
+	var bodyString string
+	if bodyString, err = rest.ReadBody(res.Body); err != nil {
+		return nil, err
+	}
 	if res.StatusCode != http.StatusOK {
 		log.Error(nil, map[string]interface{}{
 			"response_status": res.Status,
