@@ -171,12 +171,12 @@ func TestInjectTokenManager(t *testing.T) {
 
 	validator := func(ctx context.Context, res http.ResponseWriter, req *http.Request) error {
 		actualTm, err := token.ReadManagerFromContext(ctx)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actualTm)
 		assert.Equal(t, &tokenManager, actualTm)
 		return nil
 	}
 
 	err := goamw(validator)(context.Background(), nil, nil)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 }
