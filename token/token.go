@@ -221,6 +221,7 @@ func ReadManagerFromContext(ctx context.Context) (*Manager, error) {
 }
 
 // InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.
+// Use this in conjunction with token.ReadManagerFromContext()
 func InjectTokenManager(tokenManager Manager) goa.Middleware {
 	return func(h goa.Handler) goa.Handler {
 		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
