@@ -3,6 +3,7 @@ package token_test
 import (
 	"context"
 	"crypto/rsa"
+	"net/http"
 	"testing"
 
 	"golang.org/x/oauth2"
@@ -163,4 +164,19 @@ func TestLocateInvalidUUIDInTokenInContext(t *testing.T) {
 
 	_, err := tokenManager.Locate(ctx)
 	require.Error(t, err)
+}
+
+func TestInjectTokenManager(t *testing.T) {
+	goamw := token.InjectTokenManager(tokenManager)
+
+	validator := func(ctx context.Context, res http.ResponseWriter, req *http.Request) error {
+		actualTm, err := token.ReadManagerFromContext(ctx)
+		require.NoError(t, err)
+		assert.NotNil(t, actualTm)
+		assert.Equal(t, &tokenManager, actualTm)
+		return nil
+	}
+
+	err := goamw(validator)(context.Background(), nil, nil)
+	require.NoError(t, err)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
 	authjwk "github.com/fabric8-services/fabric8-auth/token/jwk"
@@ -12,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-common/login/tokencontext"
 	"github.com/satori/go.uuid"
 
+	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 )
@@ -216,4 +218,15 @@ func ReadManagerFromContext(ctx context.Context) (*Manager, error) {
 	}
 	tokenManager := tm.(Manager)
 	return &tokenManager, nil
+}
+
+// InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.
+// Use this in conjunction with token.ReadManagerFromContext()
+func InjectTokenManager(tokenManager Manager) goa.Middleware {
+	return func(h goa.Handler) goa.Handler {
+		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+			ctxWithTM := tokencontext.ContextWithTokenManager(ctx, tokenManager)
+			return h(ctxWithTM, rw, req)
+		}
+	}
 }
