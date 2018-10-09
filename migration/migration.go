@@ -16,6 +16,14 @@ import (
 	errs "github.com/pkg/errors"
 )
 
+// MigrateData should be implemented by caller of migration.Migrate() to provide different data for migration.
+type MigrateData interface {
+	// AssetNames returns list of file names (sql filenames)
+	AssetNames() []string
+	// Asset returns content of given name (filename)
+	Asset(name string) ([]byte, error)
+}
+
 // AdvisoryLockID is a random number that should be used within the application
 // by anybody who wants to modify the "version" table.
 const AdvisoryLockID = 42
@@ -35,14 +43,14 @@ var populateLocker = &sync.Mutex{}
 // Migrate executes the required migration of the database on startup.
 // For each successful migration, an entry will be written into the "version"
 // table, that states when a certain version was reached.
-func Migrate(db *sql.DB, catalog string, sqlFiles []string, Asset func(string) ([]byte, error)) error {
+func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 	var err error
 
 	if db == nil {
 		return errs.Errorf("Database handle is nil\n")
 	}
 
-	m := GetMigrations(sqlFiles, Asset)
+	m := getMigrations(migrateData)
 
 	var tx *sql.Tx
 	for nextVersion := int64(0); nextVersion < int64(len(m)) && err == nil; nextVersion++ {
@@ -97,7 +105,7 @@ func Migrate(db *sql.DB, catalog string, sqlFiles []string, Asset func(string) (
 // ExecuteSQLFile loads the given filename from the packaged SQL files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql files
-func ExecuteSQLFile(Asset func(string) ([]byte, error), filename string, args ...string) fn {
+func executeSQLFile(Asset func(string) ([]byte, error), filename string, args ...string) fn {
 	return func(db *sql.Tx) error {
 		data, err := Asset(filename)
 		if err != nil {
@@ -233,10 +241,10 @@ func NewMigrationContext(ctx context.Context) context.Context {
 }
 
 // GetMigrations returns the migrations all the migrations we have.
-func GetMigrations(sqlFiles []string, Asset func(string) ([]byte, error)) Migrations {
+func getMigrations(migrateData MigrateData) Migrations {
 	m := Migrations{}
-	for _, file := range sqlFiles {
-		m = append(m, steps{ExecuteSQLFile(Asset, file)})
+	for _, file := range migrateData.AssetNames() {
+		m = append(m, steps{executeSQLFile(migrateData.Asset, file)})
 	}
 	return m
 }
