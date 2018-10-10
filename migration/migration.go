@@ -18,8 +18,9 @@ import (
 
 // MigrateData should be implemented by caller of migration.Migrate() to provide different data for migration.
 type MigrateData interface {
-	// AssetNames returns list of file names (sql filenames)
-	AssetNames() []string
+	// AssetNameWithArgs returns list of file names (sql filenames) with args.
+	// First entry is considered as filename and rest are considered as args.
+	AssetNameWithArgs() [][]string
 	// Asset returns content of given name (filename)
 	Asset(name string) ([]byte, error)
 }
@@ -243,8 +244,8 @@ func NewMigrationContext(ctx context.Context) context.Context {
 // GetMigrations returns the migrations all the migrations we have.
 func getMigrations(migrateData MigrateData) Migrations {
 	m := Migrations{}
-	for _, file := range migrateData.AssetNames() {
-		m = append(m, steps{executeSQLFile(migrateData.Asset, file)})
+	for _, nameWithArgs := range migrateData.AssetNameWithArgs() {
+		m = append(m, steps{executeSQLFile(migrateData.Asset, nameWithArgs[0], nameWithArgs[1:]...)})
 	}
 	return m
 }
