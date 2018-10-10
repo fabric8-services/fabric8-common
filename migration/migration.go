@@ -10,7 +10,7 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-common/log"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	errs "github.com/pkg/errors"
@@ -47,7 +47,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 	var err error
 
 	if db == nil {
-		return errs.Errorf("Database handle is nil\n")
+		return errs.Errorf("database handle is nil\n")
 	}
 
 	m := getMigrations(migrateData)
@@ -57,7 +57,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 
 		tx, err = db.Begin()
 		if err != nil {
-			return errs.Errorf("Failed to start transaction: %s\n", err)
+			return errs.Errorf("failed to start transaction: %s\n", err)
 		}
 
 		err = MigrateToNextVersion(tx, &nextVersion, m, catalog)
@@ -76,7 +76,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 					"migrations":   m,
 					"err":          err,
 				}, "error while rolling back transaction: ", err)
-				return errs.Errorf("Error while rolling back transaction: %s\n", err)
+				return errs.Errorf("error while rolling back transaction: %s\n", err)
 			}
 			return oldErr
 		}
@@ -86,7 +86,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 				"migrations": m,
 				"err":        err,
 			}, "error during transaction commit: %v", err)
-			return errs.Errorf("Error during transaction commit: %s\n", err)
+			return errs.Errorf("error during transaction commit: %s\n", err)
 		}
 
 	}
@@ -96,13 +96,13 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 			"migrations": m,
 			"err":        err,
 		}, "migration failed with error: %v", err)
-		return errs.Errorf("Migration failed with error: %s\n", err)
+		return errs.Errorf("migration failed with error: %s\n", err)
 	}
 
 	return nil
 }
 
-// ExecuteSQLFile loads the given filename from the packaged SQL files and
+// executeSQLFile loads the given filename from the packaged SQL files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql files
 func executeSQLFile(Asset func(string) ([]byte, error), filename string, args ...string) fn {
