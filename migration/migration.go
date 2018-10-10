@@ -99,42 +99,29 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 	return nil
 }
 
-// executeSQLFile loads the given filename from the packaged SQL files and
-// executes it on the given database. Golang text/template module is used
-// to handle all the optional arguments passed to the sql files
-func executeSQLFile(Asset func(string) ([]byte, error), filename string, args ...string) fn {
-	return func(db *sql.Tx) error {
-		data, err := Asset(filename)
-		if err != nil {
-			return errs.Wrapf(err, "failed to find filename: %s", filename)
-		}
+// NewMigrationContext aims to create a new goa context where to initialize the
+// request and req_id context keys.
+// NOTE: We need this function to initialize the goa.ContextRequest
+func NewMigrationContext(ctx context.Context) context.Context {
+	req := &http.Request{Host: "localhost"}
+	params := url.Values{}
+	ctx = goa.NewContext(ctx, nil, req, params)
+	// set a random request ID for the context
+	var reqID string
+	ctx, reqID = client.ContextWithRequestID(ctx)
 
-		if len(args) > 0 {
-			tmpl, err := template.New("sql").Parse(string(data))
-			if err != nil {
-				return errs.Wrapf(err, "failed to parse SQL template in file %s", filename)
-			}
-			var sqlScript bytes.Buffer
-			writer := bufio.NewWriter(&sqlScript)
-			err = tmpl.Execute(writer, args)
-			if err != nil {
-				return errs.Wrapf(err, "failed to execute SQL template in file %s", filename)
-			}
-			// We need to flush the content of the writer
-			writer.Flush()
-			_, err = db.Exec(sqlScript.String())
-			if err != nil {
-				log.Error(context.Background(), map[string]interface{}{"err": err}, "failed to execute this query in file %s: \n\n%s\n\n", filename, sqlScript.String())
-			}
-		} else {
-			_, err = db.Exec(string(data))
-			if err != nil {
-				log.Error(context.Background(), map[string]interface{}{"err": err}, "failed to execute this query in file: %s \n\n%s\n\n", filename, string(data))
-			}
-		}
+	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", reqID)
 
-		return errs.WithStack(err)
+	return ctx
+}
+
+// getMigrations returns the migrations all the migrations we have.
+func getMigrations(migrateData MigrateData) migrations {
+	m := migrations{}
+	for _, nameWithArgs := range migrateData.AssetNameWithArgs() {
+		m = append(m, steps{executeSQLFile(migrateData.Asset, nameWithArgs[0], nameWithArgs[1:]...)})
 	}
+	return m
 }
 
 // migrateToNextVersion migrates the database to the nextVersion.
@@ -188,6 +175,44 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations, catalog 
 	return nil
 }
 
+// executeSQLFile loads the given filename from the packaged SQL files and
+// executes it on the given database. Golang text/template module is used
+// to handle all the optional arguments passed to the sql files
+func executeSQLFile(Asset func(string) ([]byte, error), filename string, args ...string) fn {
+	return func(db *sql.Tx) error {
+		data, err := Asset(filename)
+		if err != nil {
+			return errs.Wrapf(err, "failed to find filename: %s", filename)
+		}
+
+		if len(args) > 0 {
+			tmpl, err := template.New("sql").Parse(string(data))
+			if err != nil {
+				return errs.Wrapf(err, "failed to parse SQL template in file %s", filename)
+			}
+			var sqlScript bytes.Buffer
+			writer := bufio.NewWriter(&sqlScript)
+			err = tmpl.Execute(writer, args)
+			if err != nil {
+				return errs.Wrapf(err, "failed to execute SQL template in file %s", filename)
+			}
+			// We need to flush the content of the writer
+			writer.Flush()
+			_, err = db.Exec(sqlScript.String())
+			if err != nil {
+				log.Error(context.Background(), map[string]interface{}{"err": err}, "failed to execute this query in file %s: \n\n%s\n\n", filename, sqlScript.String())
+			}
+		} else {
+			_, err = db.Exec(string(data))
+			if err != nil {
+				log.Error(context.Background(), map[string]interface{}{"err": err}, "failed to execute this query in file: %s \n\n%s\n\n", filename, string(data))
+			}
+		}
+
+		return errs.WithStack(err)
+	}
+}
+
 // getCurrentVersion returns the highest version from the version
 // table or -1 if that table does not exist.
 //
@@ -219,29 +244,4 @@ func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
 	}
 
 	return current, nil
-}
-
-// NewMigrationContext aims to create a new goa context where to initialize the
-// request and req_id context keys.
-// NOTE: We need this function to initialize the goa.ContextRequest
-func NewMigrationContext(ctx context.Context) context.Context {
-	req := &http.Request{Host: "localhost"}
-	params := url.Values{}
-	ctx = goa.NewContext(ctx, nil, req, params)
-	// set a random request ID for the context
-	var reqID string
-	ctx, reqID = client.ContextWithRequestID(ctx)
-
-	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", reqID)
-
-	return ctx
-}
-
-// GetMigrations returns the migrations all the migrations we have.
-func getMigrations(migrateData MigrateData) migrations {
-	m := migrations{}
-	for _, nameWithArgs := range migrateData.AssetNameWithArgs() {
-		m = append(m, steps{executeSQLFile(migrateData.Asset, nameWithArgs[0], nameWithArgs[1:]...)})
-	}
-	return m
 }
