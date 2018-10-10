@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"net/http"
 	"net/url"
-	"sync"
 	"text/template"
 
 	"github.com/fabric8-services/fabric8-common/log"
@@ -25,9 +24,9 @@ type MigrateData interface {
 	Asset(name string) ([]byte, error)
 }
 
-// AdvisoryLockID is a random number that should be used within the application
+// advisoryLockID is a random number that should be used within the application
 // by anybody who wants to modify the "version" table.
-const AdvisoryLockID = 42
+const advisoryLockID = 42
 
 // fn defines the type of function that can be part of a migration steps
 type fn func(tx *sql.Tx) error
@@ -35,11 +34,8 @@ type fn func(tx *sql.Tx) error
 // steps defines a collection of all the functions that make up a version
 type steps []fn
 
-// Migrations defines all a collection of all the steps
-type Migrations []steps
-
-// mutex variable to lock/unlock the population of common types
-var populateLocker = &sync.Mutex{}
+// migrations defines all a collection of all the steps
+type migrations []steps
 
 // Migrate executes the required migration of the database on startup.
 // For each successful migration, an entry will be written into the "version"
@@ -61,7 +57,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 			return errs.Errorf("failed to start transaction: %s", err)
 		}
 
-		err = MigrateToNextVersion(tx, &nextVersion, m, catalog)
+		err = migrateToNextVersion(tx, &nextVersion, m, catalog)
 
 		if err != nil {
 			oldErr := err
@@ -141,15 +137,15 @@ func executeSQLFile(Asset func(string) ([]byte, error), filename string, args ..
 	}
 }
 
-// MigrateToNextVersion migrates the database to the nextVersion.
+// migrateToNextVersion migrates the database to the nextVersion.
 // If the database is already at nextVersion or higher, the nextVersion
 // will be set to the actual next version.
-func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog string) error {
+func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations, catalog string) error {
 	// Obtain exclusive transaction level advisory that doesn't depend on any table.
 	// Once obtained, the lock is held for the remainder of the current transaction.
 	// (There is no UNLOCK TABLE command; locks are always released at transaction end.)
-	if _, err := tx.Exec("SELECT pg_advisory_xact_lock($1)", AdvisoryLockID); err != nil {
-		return errs.Wrapf(err, "failed to acquire lock: %s", AdvisoryLockID)
+	if _, err := tx.Exec("SELECT pg_advisory_xact_lock($1)", advisoryLockID); err != nil {
+		return errs.Wrapf(err, "failed to acquire lock: %s", advisoryLockID)
 	}
 
 	// Determine current version and adjust the outmost loop
@@ -242,8 +238,8 @@ func NewMigrationContext(ctx context.Context) context.Context {
 }
 
 // GetMigrations returns the migrations all the migrations we have.
-func getMigrations(migrateData MigrateData) Migrations {
-	m := Migrations{}
+func getMigrations(migrateData MigrateData) migrations {
+	m := migrations{}
 	for _, nameWithArgs := range migrateData.AssetNameWithArgs() {
 		m = append(m, steps{executeSQLFile(migrateData.Asset, nameWithArgs[0], nameWithArgs[1:]...)})
 	}
