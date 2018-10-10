@@ -88,23 +88,23 @@ required = [
 
 [[constraint]]
   name = "github.com/golang/lint"
-  revision = "master"
+  revision = "06c8688daad7faa9da5a0c2f163a3d14aac986ca"
   
 [[constraint]]
   name = "github.com/jinzhu/gorm"
-  revision = "master"
+  version = "1.9.1"
   
 [[constraint]]
   name = "github.com/fzipp/gocyclo"
-  revision = "master"
+  revision = "6acd4345c835499920e8426c7e4e8d7a34f1bb83"
 
 [[constraint]]
   name = "github.com/wadey/gocovmerge"
-  revision = "master"
+  revision = "b5bfa59ec0adc420475f97f89b58045c721d761c"
 
 [[constraint]]
   name = "github.com/getsentry/raven-go"
-  revision = "master"
+  revision = "084a9de9eb0361fbd5ded14b55c84e5493a5d7f6"
 
 # [[constraint]]
 #   name = "github.com/dnaeon/go-vcr"
