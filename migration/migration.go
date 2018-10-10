@@ -48,7 +48,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 	var err error
 
 	if db == nil {
-		return errs.Errorf("database handle is nil\n")
+		return errs.Errorf("database handle is nil")
 	}
 
 	m := getMigrations(migrateData)
@@ -58,7 +58,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 
 		tx, err = db.Begin()
 		if err != nil {
-			return errs.Errorf("failed to start transaction: %s\n", err)
+			return errs.Errorf("failed to start transaction: %s", err)
 		}
 
 		err = MigrateToNextVersion(tx, &nextVersion, m, catalog)
@@ -77,7 +77,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 					"migrations":   m,
 					"err":          err,
 				}, "error while rolling back transaction: ", err)
-				return errs.Errorf("error while rolling back transaction: %s\n", err)
+				return errs.Errorf("error while rolling back transaction: %s", err)
 			}
 			return oldErr
 		}
@@ -87,7 +87,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 				"migrations": m,
 				"err":        err,
 			}, "error during transaction commit: %v", err)
-			return errs.Errorf("error during transaction commit: %s\n", err)
+			return errs.Errorf("error during transaction commit: %s", err)
 		}
 
 	}
@@ -97,7 +97,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 			"migrations": m,
 			"err":        err,
 		}, "migration failed with error: %v", err)
-		return errs.Errorf("migration failed with error: %s\n", err)
+		return errs.Errorf("migration failed with error: %s", err)
 	}
 
 	return nil
@@ -149,7 +149,7 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 	// Once obtained, the lock is held for the remainder of the current transaction.
 	// (There is no UNLOCK TABLE command; locks are always released at transaction end.)
 	if _, err := tx.Exec("SELECT pg_advisory_xact_lock($1)", AdvisoryLockID); err != nil {
-		return errs.Wrapf(err, "failed to acquire lock: %s\n", AdvisoryLockID)
+		return errs.Wrapf(err, "failed to acquire lock: %s", AdvisoryLockID)
 	}
 
 	// Determine current version and adjust the outmost loop
@@ -176,12 +176,12 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 	// Apply all the updates of the next version
 	for j := range m[*nextVersion] {
 		if err := m[*nextVersion][j](tx); err != nil {
-			return errs.Errorf("failed to execute migration of step %d of version %d: %s\n", j, *nextVersion, err)
+			return errs.Errorf("failed to execute migration of step %d of version %d: %s", j, *nextVersion, err)
 		}
 	}
 
 	if _, err := tx.Exec("INSERT INTO version(version) VALUES($1)", *nextVersion); err != nil {
-		return errs.Errorf("failed to update DB to version %d: %s\n", *nextVersion, err)
+		return errs.Errorf("failed to update DB to version %d: %s", *nextVersion, err)
 	}
 
 	log.Info(nil, map[string]interface{}{
@@ -207,7 +207,7 @@ func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
 
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
-		return -1, errs.Errorf(`failed to scan if table "version" exists: %s\n`, err)
+		return -1, errs.Errorf(`failed to scan if table "version" exists: %s`, err)
 	}
 
 	if !exists {
@@ -219,7 +219,7 @@ func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
 
 	var current int64 = -1
 	if err := row.Scan(&current); err != nil {
-		return -1, errs.Errorf(`failed to scan max version in table "version": %s\n`, err)
+		return -1, errs.Errorf(`failed to scan max version in table "version": %s`, err)
 	}
 
 	return current, nil
