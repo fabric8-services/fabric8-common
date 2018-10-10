@@ -97,6 +97,12 @@ func New(configFilePath string) (*Registry, error) {
 	return &c, nil
 }
 
+// SetViperConfig allow setting viper init so we can properly do composition of
+// the configuration from other projects
+func (c *Registry) SetViperConfig(v *viper.Viper) {
+	c.v = v
+}
+
 func getConfigFilePath() string {
 	// This was either passed as a env var Or, set inside main.go from --config
 	envConfigPath, ok := os.LookupEnv("F8_CONFIG_FILE_PATH")
