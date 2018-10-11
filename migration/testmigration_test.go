@@ -17,12 +17,12 @@ func (d migrateData) Asset(name string) ([]byte, error) {
 // AssetNameWithArgs impl example
 func (d migrateData) AssetNameWithArgs() [][]string {
 	names := [][]string{
-		[]string{"000-bootstrap.sql"},                    // add version table
-		[]string{"001-create-tables.sql"},                // add environments table with id, name, type
-		[]string{"002-insert-test-data.sql"},             // insert record
-		[]string{"003-alter-tables.sql"},                 // add 'namesapce' col
-		[]string{"004-insert-test-data.sql"},             // add record with namesapce col
-		[]string{"005-alter-tables.sql", "cluster1.com"}, // add cluster col; "cluster1.com" accessed with '{{ index . 0}}'
+		{"000-bootstrap.sql"},                    // add version table
+		{"001-create-tables.sql"},                // add environments table with id, name, type
+		{"002-insert-test-data.sql"},             // insert record
+		{"003-alter-tables.sql"},                 // add 'namesapce' col
+		{"004-insert-test-data.sql"},             // add record with namesapce col
+		{"005-alter-tables.sql", "cluster1.com"}, // add cluster col; "cluster1.com" accessed with '{{ index . 0}}'
 	}
 	return names
 }
