@@ -40,6 +40,7 @@ required = [
   "github.com/wadey/gocovmerge",
   "github.com/pilu/fresh",
   "github.com/davecgh/go-spew/spew",
+  "github.com/jteeuwen/go-bindata/go-bindata",
 ]
 
 [prune]

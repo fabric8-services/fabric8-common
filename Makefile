@@ -234,3 +234,28 @@ endif
 ifndef DEP_BIN
 	$(error The "$(DEP_BIN_NAME)" executable could not be found in your PATH)
 endif
+
+# For the global "clean" target all targets in this variable will be executed
+CLEAN_TARGETS =
+
+CLEAN_TARGETS += clean-generated
+.PHONY: clean-generated
+clean-generated:
+	-rm -rf ./migration/sqlbindata_test.go
+
+.PHONY: clean
+clean: $(CLEAN_TARGETS)
+
+.PHONY: generate
+generate: prebuild-check migration/sqlbindata_test.go
+
+migration/sqlbindata_test.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-test-files/*.sql)
+	$(GO_BINDATA_BIN) \
+		-o migration/sqlbindata_test.go \
+		-pkg migration_test \
+		-prefix migration/sql-test-files \
+		-nocompress \
+		migration/sql-test-files
+
+$(GO_BINDATA_BIN): $(VENDOR_DIR)
+	cd $(VENDOR_DIR)/github.com/jteeuwen/go-bindata/go-bindata && go build -v

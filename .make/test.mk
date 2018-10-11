@@ -110,6 +110,12 @@ ALL_PKGS_EXCLUDE_PATTERN = "vendor\|account\/tenant\|app\'\|tool\/cli\|design\|c
 GOANALYSIS_PKGS_EXCLUDE_PATTERN="vendor|account/tenant|app|client|tool/cli"
 GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS_EXCLUDE_PATTERN))
 
+# docker-compose for integration tests
+DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
+DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose-integration-test.yaml
+# Alternative path to docker-compose (if downloaded)
+DOCKER_COMPOSE_BIN_ALT = $(TMP_PATH)/docker-compose
+
 #-------------------------------------------------------------------------------
 # Normal test targets
 #
@@ -361,3 +367,47 @@ CLEAN_TARGETS += clean-coverage-unit
 ## Removes unit test coverage file
 clean-coverage-unit:
 	-@rm -f $(COV_PATH_UNIT)
+
+# Downloads docker-compose to tmp/docker-compose if it does not already exist.
+define download-docker-compose
+	@if [ ! -f "$(DOCKER_COMPOSE_BIN_ALT)" ]; then \
+		echo "Downloading docker-compose to $(DOCKER_COMPOSE_BIN_ALT)"; \
+		UNAME_S=$(shell uname -s); \
+		UNAME_M=$(shell uname -m); \
+		URL="https://github.com/docker/compose/releases/download/1.11.2/docker-compose-$${UNAME_S}-$${UNAME_M}"; \
+		curl --silent -L $${URL} > $(DOCKER_COMPOSE_BIN_ALT); \
+		chmod +x $(DOCKER_COMPOSE_BIN_ALT); \
+	fi
+endef
+
+.PHONY: integration-test-env-prepare
+integration-test-env-prepare:
+ifdef DOCKER_COMPOSE_BIN
+	@$(DOCKER_COMPOSE_BIN) -f $(DOCKER_COMPOSE_FILE) up -d
+else
+ifneq ($(OS),Windows_NT)
+	$(call download-docker-compose)
+	@$(DOCKER_COMPOSE_BIN_ALT) -f $(DOCKER_COMPOSE_FILE) up -d
+else
+	$(error The "$(DOCKER_COMPOSE_BIN_NAME)" executable could not be found in your PATH)
+endif
+endif
+
+.PHONY: integration-test-env-tear-down
+integration-test-env-tear-down:
+ifdef DOCKER_COMPOSE_BIN
+	@$(DOCKER_COMPOSE_BIN) -f $(DOCKER_COMPOSE_FILE) down
+else
+ifneq ($(OS),Windows_NT)
+	$(call download-docker-compose)
+	@$(DOCKER_COMPOSE_BIN_ALT) -f $(DOCKER_COMPOSE_FILE) down
+else
+	$(error The "$(DOCKER_COMPOSE_BIN_NAME)" executable could not be found in your PATH)
+endif
+endif
+
+.PHONY: test-integration-no-coverage
+test-integration-no-coverage: prebuild-check $(SOURCES)
+	$(call log-info,"Running test: $@")
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	go test -v $(TEST_PACKAGES)
