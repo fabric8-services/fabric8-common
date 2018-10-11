@@ -3,11 +3,12 @@ package jwk
 import (
 	"crypto/rsa"
 	"encoding/json"
+	"errors"
 	"net/http"
 
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 
-	"github.com/fabric8-services/fabric8-common/rest"
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/log"
 
 	"gopkg.in/square/go-jose.v2"
@@ -30,33 +31,38 @@ type JSONKeys struct {
 	Keys []interface{} `json:"keys"`
 }
 
-type KeyLoader struct {
-	HttpClient rest.HttpClient
-}
-
-var defaultLoader = KeyLoader{HttpClient: http.DefaultClient}
-
-func (l *KeyLoader) FetchKeys(keysEndpointURL string) ([]*PublicKey, error) {
+// FetchKeys fetches public JSON WEB Keys from a remote service
+func FetchKeys(keysEndpointURL string, options ...httpsupport.HTTPClientOption) ([]*PublicKey, error) {
+	httpClient := http.DefaultClient
+	for _, opt := range options {
+		opt(httpClient)
+	}
 	req, err := http.NewRequest("GET", keysEndpointURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	res, err := l.HttpClient.Do(req)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer rest.CloseResponse(res)
-	var bodyString string
-	if bodyString, err = rest.ReadBody(res.Body); err != nil {
-		return nil, err
+	defer func() {
+		err := httpsupport.CloseResponse(res)
+		if err != nil {
+			log.Error(nil, map[string]interface{}{"error": err}, "failed to close response after reading")
+		}
+	}()
+	bodyString, err := httpsupport.ReadBody(res.Body)
+	if err != nil {
+		return nil, errs.Wrapf(err, "unable to read response while fetching keys")
 	}
+
 	if res.StatusCode != http.StatusOK {
 		log.Error(nil, map[string]interface{}{
 			"response_status": res.Status,
 			"response_body":   bodyString,
 			"url":             keysEndpointURL,
 		}, "unable to obtain public keys from remote service")
-		return nil, errors.Errorf("unable to obtain public keys from remote service")
+		return nil, errs.Errorf("unable to obtain public keys from remote service")
 	}
 	keys, err := unmarshalKeys([]byte(bodyString))
 	if err != nil {
@@ -68,11 +74,6 @@ func (l *KeyLoader) FetchKeys(keysEndpointURL string) ([]*PublicKey, error) {
 		"number_of_keys": len(keys),
 	}, "Public keys loaded")
 	return keys, nil
-}
-
-// FetchKeys fetches public JSON WEB Keys from a remote service
-func FetchKeys(keysEndpointURL string) ([]*PublicKey, error) {
-	return defaultLoader.FetchKeys(keysEndpointURL)
 }
 
 func unmarshalKeys(jsonData []byte) ([]*PublicKey, error) {

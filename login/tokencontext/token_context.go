@@ -4,6 +4,7 @@ package tokencontext
 
 import (
 	"context"
+	"fmt"
 )
 
 type contextTMKey int
@@ -34,6 +35,7 @@ func ReadSpaceAuthzServiceFromContext(ctx context.Context) interface{} {
 // Accepts Token.Manager in order to make sure that correct object is set in the context.
 // Only other possible value is nil
 func ContextWithTokenManager(ctx context.Context, tm interface{}) context.Context {
+	fmt.Printf("adding token manager (%T) in context..\n", tm)
 	return context.WithValue(ctx, contextTokenManagerKey, tm)
 }
 

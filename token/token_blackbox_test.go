@@ -11,13 +11,14 @@ import (
 	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
 	"github.com/fabric8-services/fabric8-common/token"
 
+	"strings"
+
 	"github.com/dgrijalva/jwt-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"strings"
 )
 
 func TestToken(t *testing.T) {

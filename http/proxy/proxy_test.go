@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-common/httpsupport"
+
 	"github.com/fabric8-services/fabric8-common/resource"
 
 	"github.com/goadesign/goa"
@@ -43,7 +45,7 @@ func TestProxy(t *testing.T) {
 
 	assert.Equal(t, 201, rw.Code)
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
-	body, err := readBody(rw.Result().Body)
+	body, err := httpsupport.ReadBody(rw.Result().Body)
 	require.NoError(t, err)
 	assert.Equal(t, veryLongBody, body)
 
@@ -62,7 +64,7 @@ func TestProxy(t *testing.T) {
 
 	assert.Equal(t, 201, rw.Code)
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
-	body, err = readBody(rw.Result().Body)
+	body, err = httpsupport.ReadBody(rw.Result().Body)
 	require.NoError(t, err)
 	assert.Equal(t, veryLongBody, body)
 }

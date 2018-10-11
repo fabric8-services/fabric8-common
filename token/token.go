@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/fabric8-services/fabric8-common/token/jwk"
-	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 	errs "github.com/fabric8-services/fabric8-common/errors"
 	"github.com/fabric8-services/fabric8-common/log"
+	"github.com/fabric8-services/fabric8-common/token/jwk"
+	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -113,6 +113,14 @@ func NewManager(config configuration) (Manager, error) {
 		}, "Public key added")
 	}
 	return tm, nil
+}
+
+// NewManagerWithPublicKey returns a new token Manager for handling tokens with the only public key
+func NewManagerWithPublicKey(id string, key *rsa.PublicKey) Manager {
+	return &tokenManager{
+		publicKeysMap: map[string]*rsa.PublicKey{id: key},
+		publicKeys:    []*jwk.PublicKey{{KeyID: id, Key: key}},
+	}
 }
 
 // ParseToken parses token claims

@@ -20,29 +20,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func failOnNoToken(t *testing.T) context.Context {
+func withTokenManager(t *testing.T) context.Context {
 	// this is just normal context object with no, token
 	// so this should fail saying no token available
-	m := testtoken.NewManager()
-	return tokencontext.ContextWithTokenManager(context.Background(), m)
+	return tokencontext.ContextWithTokenManager(context.Background(), testtoken.NewManager())
 }
 
-func failOnParsingToken(t *testing.T) context.Context {
-	ctx := failOnNoToken(t)
+func withIncompleteToken(t *testing.T) context.Context {
+	ctx := withTokenManager(t)
 	// Here we add a token which is incomplete
 	token := jwt.New(jwt.GetSigningMethod("RS256"))
-	ctx = goajwt.WithJWT(ctx, token)
-	return ctx
+	return goajwt.WithJWT(ctx, token)
 }
 
-func validToken(t *testing.T, identityID string, identityUsername string) context.Context {
-	ctx := failOnNoToken(t)
+func withValidToken(t *testing.T, identityID string, identityUsername string) context.Context {
+	ctx := withTokenManager(t)
 	// Here we add a token that is perfectly valid
 	token, err := testtoken.GenerateTokenObject(identityID, identityUsername, testtoken.PrivateKey())
-	require.Nilf(t, err, "could not generate token: %v", errors.WithStack(err))
-
-	ctx = goajwt.WithJWT(ctx, token)
-	return ctx
+	require.NoErrorf(t, err, "could not generate token: %v", errors.WithStack(err))
+	return goajwt.WithJWT(ctx, token)
 }
 
 func TestExtractUserInfo(t *testing.T) {
@@ -57,7 +53,7 @@ func TestExtractUserInfo(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-
+			fmt.Printf("token manager located")
 			q := *m
 			token := goajwt.ContextJWT(ctx)
 			if token == nil {
@@ -76,51 +72,43 @@ func TestExtractUserInfo(t *testing.T) {
 		}))
 	require.NoError(t, err)
 
-	tests := []struct {
-		name    string
-		ctx     context.Context
-		want    *raven.User
-		wantErr bool
-	}{
-		{
-			name:    "Given some random context",
-			ctx:     context.Background(),
-			wantErr: true,
-		},
-		{
-			name:    "fail on no token",
-			ctx:     failOnNoToken(t),
-			wantErr: true,
-		},
-		{
-			name:    "fail on parsing token",
-			ctx:     failOnParsingToken(t),
-			wantErr: true,
-		},
-		{
-			name:    "pass on parsing token",
-			ctx:     validToken(t, userID.String(), username),
-			wantErr: false,
-			want: &raven.User{
-				Username: username,
-				ID:       userID.String(),
-				Email:    username + "@email.com",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := Sentry().userInfo(tt.ctx)
-			if tt.wantErr {
-				require.Error(t, err)
-				// if above assertion passes we don't need to continue
-				// to check if objects match
-				return
-			}
-			require.NoError(t, err)
-			require.Equalf(t, tt.want, got, "extractUserInfo() = %v, want %v", got, tt.want)
-		})
-	}
+	t.Run("random context", func(t *testing.T) {
+		// when
+		userInfo, err := Sentry().userInfo(context.Background())
+		// then
+		require.Error(t, err)
+		assert.Nil(t, userInfo)
+	})
+
+	t.Run("missing tokem", func(t *testing.T) {
+		// when
+		userInfo, err := Sentry().userInfo(withTokenManager(t))
+		// then
+		require.Error(t, err)
+		assert.Nil(t, userInfo)
+	})
+
+	t.Run("incomplete tokem", func(t *testing.T) {
+		// when
+		userInfo, err := Sentry().userInfo(withIncompleteToken(t))
+		// then
+		require.Error(t, err)
+		assert.Nil(t, userInfo)
+	})
+
+	t.Run("valid tokem", func(t *testing.T) {
+		// when
+		userInfo, err := Sentry().userInfo(withValidToken(t, userID.String(), username))
+		// then
+		require.NoError(t, err)
+		require.NotNil(t, userInfo)
+		assert.Equal(t, raven.User{
+			Username: username,
+			ID:       userID.String(),
+			Email:    username + "@email.com",
+		}, *userInfo)
+	})
+
 }
 
 func TestDSN(t *testing.T) {
