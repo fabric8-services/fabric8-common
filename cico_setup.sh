@@ -62,7 +62,7 @@ function prepare() {
   # Check code for style violations (vet, etc).
   # make docker-analyze-go-code
   # Take Goa designs and generate code with it.
-  # make docker-generate
+  make docker-generate
   # Build the wit and wit-cli binary
   make docker-build
   echo 'CICO: Preparation complete'
