@@ -3,6 +3,7 @@ package migration_test
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-common/gormsupport"
@@ -17,8 +18,12 @@ const (
 	dbName = "test"
 )
 
+var host = os.Getenv("F8_POSTGRES_HOST")
+var port = os.Getenv("F8_POSTGRES_PORT")
+
 func setupTest(t *testing.T) {
-	dbConfig := "host=localhost port=5432 user=postgres password=mysecretpassword sslmode=disable connect_timeout=5"
+	dbConfig := fmt.Sprintf("host=%s port=%s user=postgres password=mysecretpassword sslmode=disable connect_timeout=5", host, port)
+	t.Logf("dbConfig=%s", dbConfig)
 
 	db, err := sql.Open("postgres", dbConfig)
 	require.NoError(t, err, "cannot connect to database: %s", dbName)
@@ -33,13 +38,14 @@ func setupTest(t *testing.T) {
 	require.NoError(t, err, "failed to create database '%s'", dbName)
 }
 
-func TestMigration(t *testing.T) {
+func TestMigrate(t *testing.T) {
 	resource.Require(t, resource.Database)
 
 	setupTest(t)
 
-	dbConfig := fmt.Sprintf("host=localhost port=5432 user=postgres password=mysecretpassword dbname=%s sslmode=disable connect_timeout=5",
-		dbName)
+	dbConfig := fmt.Sprintf("host=%s port=%s user=postgres password=mysecretpassword dbname=%s sslmode=disable connect_timeout=5",
+		host, port, dbName)
+	t.Logf("dbConfig=%s", dbConfig)
 
 	sqlDB, err := sql.Open("postgres", dbConfig)
 	require.NoError(t, err, "cannot connect to DB '%s'", dbName)

@@ -84,6 +84,7 @@ else
 		-t \
 		$(DOCKER_RUN_INTERACTIVE_SWITCH) \
 		--name="$(DOCKER_CONTAINER_NAME)" \
+		-e F8_POSTGRES_PORT=5432 \
 		-v $(CUR_DIR):$(PACKAGE_PATH):Z \
 		-u $(shell id -u $(USER)):$(shell id -g $(USER)) \
 		-e GOPATH=$(GOPATH_IN_CONTAINER) \
@@ -103,18 +104,18 @@ endif
 
 # # The targets in the following list all depend on a running database container.
 # # Make sure you run "make integration-test-env-prepare" before you run any of these targets.
-# DB_DEPENDENT_DOCKER_TARGETS = docker-coverage-all 
+DB_DEPENDENT_DOCKER_TARGETS = docker-test-integration-no-coverage docker-coverage-all 
 
-# $(DB_DEPENDENT_DOCKER_TARGETS):
-# 	$(eval makecommand:=$(subst docker-,,$@))
-# ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
-# 	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start")
-# endif
-# ifeq ($(strip $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null)),)
-# 	$(error Failed to find PostgreSQL container. Try running "make integration-test-env-prepare")
-# endif
-# 	$(eval F8_POSTGRES_HOST := $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null))
-# 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -ec 'export F8_POSTGRES_HOST=$(F8_POSTGRES_HOST); make $(makecommand)'
+$(DB_DEPENDENT_DOCKER_TARGETS):
+	$(eval makecommand:=$(subst docker-,,$@))
+ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
+	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start")
+endif
+ifeq ($(strip $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null)),)
+	$(error Failed to find PostgreSQL container. Try running "make integration-test-env-prepare")
+endif
+	$(eval F8_POSTGRES_HOST := $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null))
+	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -ec 'export F8_POSTGRES_HOST=$(F8_POSTGRES_HOST); make $(makecommand)'
 
 # This is a wildcard target to let you call any make target from the normal makefile
 # but it will run inside the docker container. This target will only get executed if

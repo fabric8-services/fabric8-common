@@ -410,4 +410,4 @@ endif
 test-integration-no-coverage: prebuild-check $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
