@@ -31,11 +31,11 @@ func (s *TestFetchKeysSuite) TestDefaultFetcher() {
 }
 
 func (s *TestFetchKeysSuite) TestFetchKeys() {
-	client := &test.DummyHttpClient{AssertRequest: func(req *http.Request) {
+	client := &test.DummyHTTPClient{AssertRequest: func(req *http.Request) {
 		assert.Equal(s.T(), "GET", req.Method)
 		assert.Equal(s.T(), "https://openshift.io/keys", req.URL.String())
 	}}
-	keyLoader := jwk.KeyLoader{HttpClient: client}
+	keyLoader := jwk.KeyLoader{HTTPClient: client}
 	client.Response = responseOK()
 
 	// All three keys are loaded

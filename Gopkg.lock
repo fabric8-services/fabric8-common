@@ -66,19 +66,6 @@
   version = "v5.0.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:b15f541cdc52e84ead1d67294d71e43f04be1273298d6e93828ea8844c55523c"
-  name = "github.com/fabric8-services/fabric8-auth"
-  packages = [
-    "errors",
-    "log",
-    "rest",
-    "token/jwk",
-  ]
-  pruneopts = "UT"
-  revision = "81bf87a6bdae7528a88041f0493555a9fd45a847"
-
-[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -423,11 +410,12 @@
   version = "v1.0.2"
 
 [[projects]]
-  digest = "1:c40d65817cdd41fac9aa7af8bed56927bb2d6d47e4fea566a74880f5c2b1c41e"
+  digest = "1:5110e3d4f130772fd39e6ce8208ad1955b242ccfcc8ad9d158857250579c82f4"
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
     "require",
+    "suite",
   ]
   pruneopts = "UT"
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
@@ -569,7 +557,6 @@
   input-imports = [
     "github.com/davecgh/go-spew/spew",
     "github.com/dgrijalva/jwt-go",
-    "github.com/fabric8-services/fabric8-auth/token/jwk",
     "github.com/fzipp/gocyclo",
     "github.com/getsentry/raven-go",
     "github.com/goadesign/goa",
@@ -600,8 +587,10 @@
     "github.com/spf13/viper",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
+    "github.com/stretchr/testify/suite",
     "github.com/wadey/gocovmerge",
     "golang.org/x/oauth2",
+    "gopkg.in/square/go-jose.v2",
     "gopkg.in/yaml.v2",
   ]
   solver-name = "gps-cdcl"

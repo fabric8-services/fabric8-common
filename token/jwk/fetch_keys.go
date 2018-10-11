@@ -7,8 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/log"
-	"github.com/fabric8-services/fabric8-common/rest"
 
 	"gopkg.in/square/go-jose.v2"
 )
@@ -31,22 +31,22 @@ type JSONKeys struct {
 }
 
 type KeyLoader struct {
-	HttpClient rest.HttpClient
+	HTTPClient httpsupport.HTTPClient
 }
 
-var defaultLoader = KeyLoader{HttpClient: http.DefaultClient}
+var defaultLoader = KeyLoader{HTTPClient: http.DefaultClient}
 
 func (l *KeyLoader) FetchKeys(keysEndpointURL string) ([]*PublicKey, error) {
 	req, err := http.NewRequest("GET", keysEndpointURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	res, err := l.HttpClient.Do(req)
+	res, err := l.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer rest.CloseResponse(res)
-	bodyString := rest.ReadBody(res.Body)
+	defer httpsupport.CloseResponse(res)
+	bodyString := httpsupport.ReadBody(res.Body)
 	if res.StatusCode != http.StatusOK {
 		log.Error(nil, map[string]interface{}{
 			"response_status": res.Status,

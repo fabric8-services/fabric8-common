@@ -7,10 +7,10 @@ import (
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
-	authjwk "github.com/fabric8-services/fabric8-auth/token/jwk"
 	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/fabric8-services/fabric8-common/log"
 	"github.com/fabric8-services/fabric8-common/login/tokencontext"
+	"github.com/fabric8-services/fabric8-common/token/jwk"
 	"github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
@@ -76,7 +76,7 @@ func NewManager(config tokenManagerConfiguration) (Manager, error) {
 	}
 
 	keysEndpoint := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), config.GetKeysTokenPath())
-	remoteKeys, err := authjwk.FetchKeys(keysEndpoint)
+	remoteKeys, err := jwk.FetchKeys(keysEndpoint)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":      err,
