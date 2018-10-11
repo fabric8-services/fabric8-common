@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"bytes"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -172,10 +171,4 @@ func generateLongBody() string {
 		body = body + uuid.NewV4().String()
 	}
 	return body
-}
-
-func readBody(body io.ReadCloser) (string, error) {
-	buf := new(bytes.Buffer)
-	_, err := buf.ReadFrom(body)
-	return buf.String(), err
 }
