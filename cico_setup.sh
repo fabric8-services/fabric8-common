@@ -70,14 +70,14 @@ function prepare() {
 
 function run_tests_without_coverage() {
   make docker-test-unit-no-coverage
-  # make integration-test-env-prepare
-  # trap cleanup_env EXIT
+  make integration-test-env-prepare
+  trap cleanup_env EXIT
 
   # # Check that postgresql container is healthy
-  # check_postgres_healthiness
+  check_postgres_healthiness
 
   # make docker-test-migration
-  # make docker-test-integration-no-coverage
+  make docker-test-integration-no-coverage
   # make docker-test-remote-no-coverage
   echo "CICO: ran tests without coverage"
 }
@@ -89,7 +89,7 @@ function run_go_benchmarks() {
   # Check that postgresql container is healthy
   check_postgres_healthiness
 
-  make docker-test-migration
+  # make docker-test-migration
   make docker-test-integration-benchmark
   echo "CICO: ran go benchmarks"
 }
