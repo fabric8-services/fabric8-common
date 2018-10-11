@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-common/gormsupport"
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
@@ -33,6 +34,8 @@ func setupTest(t *testing.T) {
 }
 
 func TestMigration(t *testing.T) {
+	resource.Require(t, resource.Database)
+
 	setupTest(t)
 
 	dbConfig := fmt.Sprintf("host=localhost port=5432 user=postgres password=mysecretpassword dbname=%s sslmode=disable connect_timeout=5",
