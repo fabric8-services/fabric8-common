@@ -112,7 +112,7 @@ GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS
 
 # docker-compose for integration tests
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
-DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose-integration-test.yaml
+DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose.integration-test.yaml
 # Alternative path to docker-compose (if downloaded)
 DOCKER_COMPOSE_BIN_ALT = $(TMP_PATH)/docker-compose
 
