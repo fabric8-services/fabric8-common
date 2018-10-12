@@ -18,12 +18,10 @@ const (
 	dbName = "test"
 )
 
-var host = os.Getenv("F8_POSTGRES_HOST")
-var port = os.Getenv("F8_POSTGRES_PORT")
+var host, port string
 
 func setupTest(t *testing.T) {
 	dbConfig := fmt.Sprintf("host=%s port=%s user=postgres password=mysecretpassword sslmode=disable connect_timeout=5", host, port)
-	t.Logf("dbConfig=%s", dbConfig)
 
 	db, err := sql.Open("postgres", dbConfig)
 	require.NoError(t, err, "cannot connect to database: %s", dbName)
@@ -41,11 +39,15 @@ func setupTest(t *testing.T) {
 func TestMigrate(t *testing.T) {
 	resource.Require(t, resource.Database)
 
+	host = os.Getenv("F8_POSTGRES_HOST")
+	require.NotEmpty(t, host, "F8_POSTGRES_HOST is not set")
+	port = os.Getenv("F8_POSTGRES_PORT")
+	require.NotEmpty(t, port, "F8_POSTGRES_PORT is not set")
+
 	setupTest(t)
 
 	dbConfig := fmt.Sprintf("host=%s port=%s user=postgres password=mysecretpassword dbname=%s sslmode=disable connect_timeout=5",
 		host, port, dbName)
-	t.Logf("dbConfig=%s", dbConfig)
 
 	sqlDB, err := sql.Open("postgres", dbConfig)
 	require.NoError(t, err, "cannot connect to DB '%s'", dbName)
