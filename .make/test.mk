@@ -228,8 +228,8 @@ coverage-unit: prebuild-check $(COV_PATH_UNIT)
 .PHONY: coverage-integration
 coverage-integration: prebuild-check $(COV_PATH_INTEGRATION)
 	# $(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
-    @go tool cover -func=$(COV_PATH_INTEGRATION)
-    $(call package-coverage,integration)
+	@go tool cover -func=$(COV_PATH_INTEGRATION)
+	$(call package-coverage,integration)
 
 .PHONY: coverage-all
 ## Output coverage profile information for each function.
@@ -355,22 +355,22 @@ $(COV_PATH_UNIT): $(SOURCES) $(GOCOVMERGE_BIN)
 	@-rm -f $(ERRORS_FILE)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	$(eval ALL_PKGS_COMMA_SEPARATED:=$(shell echo $(TEST_PACKAGES)  | tr ' ' ,))
-	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_UNIT),$(ERRORS_FILE),,$(ALL_PKGS_COMMA_SEPARATED)))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_UNIT),$(ERRORS_FILE),F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_UNIT_TEST=1,$(ALL_PKGS_COMMA_SEPARATED)))
 	$(call check-test-results,$(ERRORS_FILE))
 
 # NOTE: We don't have prebuild-check as a dependency here because it would cause
 #       the recipe to be always executed.
 $(COV_PATH_INTEGRATION): $(SOURCES) $(GOCOVMERGE_BIN)
 	$(eval TEST_NAME := integration)
-    $(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
-    $(call log-info,"Running test: $(TEST_NAME)")
-    @mkdir -p $(COV_DIR)
-    @echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_INTEGRATION)
-    @-rm -f $(ERRORS_FILE)
-    $(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-    $(eval ALL_PKGS_COMMA_SEPARATED:=$(shell echo $(TEST_PACKAGES)  | tr ' ' ,))
-    $(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),F8CLUSTER_RESOURCE_DATABASE=1 F8CLUSTER_RESOURCE_UNIT_TEST=0,$(ALL_PKGS_COMMA_SEPARATED)))
-    $(call check-test-results,$(ERRORS_FILE))
+	$(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
+	$(call log-info,"Running test: $(TEST_NAME)")
+	@mkdir -p $(COV_DIR)
+	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_INTEGRATION)
+	@-rm -f $(ERRORS_FILE)
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	$(eval ALL_PKGS_COMMA_SEPARATED:=$(shell echo $(TEST_PACKAGES)  | tr ' ' ,))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0,$(ALL_PKGS_COMMA_SEPARATED)))
+	$(call check-test-results,$(ERRORS_FILE))
 
 #-------------------------------------------------------------------------------
 # Additional tools to build
@@ -451,7 +451,7 @@ endif
 test-integration-no-coverage: prebuild-check $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
 .PHONY: test-integration
 ## Make sure you ran "make integration-test-env-prepare" before you run this target.
