@@ -5,13 +5,9 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"net/http"
-	"net/url"
 	"text/template"
 
 	"github.com/fabric8-services/fabric8-common/log"
-	"github.com/goadesign/goa"
-	"github.com/goadesign/goa/client"
 	errs "github.com/pkg/errors"
 )
 
@@ -97,22 +93,6 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 	}
 
 	return nil
-}
-
-// NewMigrationContext aims to create a new goa context where to initialize the
-// request and req_id context keys.
-// NOTE: We need this function to initialize the goa.ContextRequest
-func NewMigrationContext(ctx context.Context) context.Context {
-	req := &http.Request{Host: "localhost"}
-	params := url.Values{}
-	ctx = goa.NewContext(ctx, nil, req, params)
-	// set a random request ID for the context
-	var reqID string
-	ctx, reqID = client.ContextWithRequestID(ctx)
-
-	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", reqID)
-
-	return ctx
 }
 
 // getMigrations returns the migrations all the migrations we have.
