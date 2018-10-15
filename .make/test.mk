@@ -128,21 +128,21 @@ DOCKER_COMPOSE_BIN_ALT = $(TMP_PATH)/docker-compose
 
 .PHONY: test-all
 ## Runs test-unit and test-integration targets.
-test-all: prebuild-check test-unit
+test-all: prebuild-check test-unit test-integration
 
 .PHONY: test-unit
 ## Runs the unit tests and produces coverage files for each package.
-test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
+test-unit: prebuild-check generate clean-coverage-unit $(COV_PATH_UNIT)
 
 .PHONY: test-unit-no-coverage
 ## Runs the unit tests and WITHOUT producing coverage files for each package.
-test-unit-no-coverage: prebuild-check $(SOURCES)
+test-unit-no-coverage: prebuild-check generate $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_UNIT_TEST=1 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
 .PHONY: test-unit-no-coverage-junit
-test-unit-no-coverage-junit: prebuild-check ${GO_JUNIT_BIN} ${TMP_PATH}
+test-unit-no-coverage-junit: prebuild-check generate ${GO_JUNIT_BIN} ${TMP_PATH}
 	bash -c "set -o pipefail; make test-unit-no-coverage 2>&1 | tee >(${GO_JUNIT_BIN} > ${TMP_PATH}/junit.xml)"
 
 #-------------------------------------------------------------------------------
@@ -448,11 +448,11 @@ endif
 endif
 
 .PHONY: test-integration-no-coverage
-test-integration-no-coverage: prebuild-check $(SOURCES)
+test-integration-no-coverage: prebuild-check generate $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
 .PHONY: test-integration
 ## Make sure you ran "make integration-test-env-prepare" before you run this target.
-test-integration: prebuild-check clean-coverage-integration $(COV_PATH_INTEGRATION)
+test-integration: prebuild-check generate clean-coverage-integration $(COV_PATH_INTEGRATION)
