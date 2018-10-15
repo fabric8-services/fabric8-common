@@ -42,22 +42,24 @@ func TestAddParams(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
+		// given
 		testMap := map[string]string{
 			"param1": "a",
 			"param2": "b",
 			"param3": "https://www.redhat.com",
 		}
 		testHost := "openshift.io"
+		// when
 		generatedURLString, err := httpsupport.AddParams("https://"+testHost, testMap)
+		// then
 		require.NoError(t, err)
-
+		// verify that the generated URL can be parsed that all params were set as expected
 		generateURL, err := url.Parse(generatedURLString)
 		require.NoError(t, err)
-
 		assert.Equal(t, testHost, generateURL.Host)
 		assert.Equal(t, "https", generateURL.Scheme)
-
-		m, _ := url.ParseQuery(generateURL.RawQuery)
+		m, err := url.ParseQuery(generateURL.RawQuery)
+		require.NoError(t, err)
 		for k, v := range testMap {
 			assert.Equal(t, v, m[k][0])
 		}
