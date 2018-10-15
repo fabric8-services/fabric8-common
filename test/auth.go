@@ -166,14 +166,6 @@ func ContextWithTokenManager(tm token.Manager) context.Context {
 	return tokencontext.ContextWithTokenManager(context.Background(), tm)
 }
 
-func newManager(config token.ManagerConfiguration) token.Manager {
-	tm, err := token.NewManager(config)
-	if err != nil {
-		panic("failed to create token manager: " + err.Error())
-	}
-	return tm
-}
-
 func privateKey(config token.ManagerConfiguration) (*rsa.PrivateKey, string, error) {
 	key := config.GetDevModePrivateKey()
 	pk, err := jwt.ParseRSAPrivateKeyFromPEM(key)

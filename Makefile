@@ -147,9 +147,12 @@ govet:
 
 .PHONY: build
 ## build all packages
-build: deps
+build: deps generate
 	@echo "building all packages..."
 	go build ./...
+
+.PHONY: generate
+generate: generate-mocks
 
 .PHONY: import
 ## import a pkg or a file from another repository, along with the commit history
