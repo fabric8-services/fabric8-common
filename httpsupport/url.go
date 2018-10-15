@@ -13,6 +13,7 @@ import (
 func AbsoluteURL(req *goa.RequestData, relative string, config configuration) string {
 	host := Host(req, config)
 	return absoluteURLForHost(req, host, relative)
+	// output: http://api.service.domain.org/somepath
 }
 
 // ReplaceDomainPrefixInAbsoluteURL replaces the last name in the host of the URL by a new name.
