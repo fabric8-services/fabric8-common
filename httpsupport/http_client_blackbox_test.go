@@ -53,10 +53,10 @@ func TestAddParams(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		equalURLs(t, &url.URL{
-			Scheme:"https",
-			Host:"openshift.io",
-			Path: "",
-			RawQuery:"param1=a&param2=abc",
+			Scheme:   "https",
+			Host:     "openshift.io",
+			Path:     "",
+			RawQuery: "param1=a&param2=abc",
 		}, generatedURLString)
 	})
 
@@ -75,13 +75,12 @@ func TestAddParams(t *testing.T) {
 		// then verify that the generated URL can be parsed that all params were set as expected
 		require.NoError(t, err)
 		equalURLs(t, &url.URL{
-			Scheme:"https",
-			Host:host,
-			Path: path,
-			RawQuery:"param1=a&param2=b&param3=https%3A%2F%2Fwww.redhat.com",
+			Scheme:   "https",
+			Host:     host,
+			Path:     path,
+			RawQuery: "param1=a&param2=b&param3=https%3A%2F%2Fwww.redhat.com",
 		}, generatedURLString)
 	})
-
 
 }
 
