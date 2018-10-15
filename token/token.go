@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"net/http"
 
 	errs "github.com/fabric8-services/fabric8-common/errors"
@@ -32,8 +33,8 @@ const (
 	devModeKeyID = "test-key"
 )
 
-// configuration represents configuration needed to construct a token manager
-type configuration interface {
+// ManagerConfiguration represents configuration needed to construct a token manager
+type ManagerConfiguration interface {
 	GetAuthServiceURL() string
 	GetAuthKeysPath() string
 	GetDevModePrivateKey() []byte
@@ -70,11 +71,11 @@ type Manager interface {
 type tokenManager struct {
 	publicKeysMap map[string]*rsa.PublicKey
 	publicKeys    []*jwk.PublicKey
-	config        configuration
+	config        ManagerConfiguration
 }
 
 // NewManager returns a new token Manager for handling tokens
-func NewManager(config configuration) (Manager, error) {
+func NewManager(config ManagerConfiguration, options ...httpsupport.HTTPClientOption) (Manager, error) {
 
 	// Load public keys from Auth service and add them to the manager
 	tm := &tokenManager{
@@ -83,7 +84,7 @@ func NewManager(config configuration) (Manager, error) {
 	tm.config = config
 
 	keysEndpoint := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), config.GetAuthKeysPath())
-	remoteKeys, err := jwk.FetchKeys(keysEndpoint)
+	remoteKeys, err := jwk.FetchKeys(keysEndpoint, options...)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":      err,
@@ -101,6 +102,7 @@ func NewManager(config configuration) (Manager, error) {
 
 	devModePrivateKey := config.GetDevModePrivateKey()
 	if devModePrivateKey != nil {
+		log.Info(nil, map[string]interface{}{}, "adding dev-mode private key, too...")
 		// Add the public key which will be used to verify tokens generated in Dev Mode
 		rsaKey, err := jwt.ParseRSAPrivateKeyFromPEM(devModePrivateKey)
 		if err != nil {

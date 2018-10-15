@@ -6,10 +6,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-common/login/tokencontext"
 	"github.com/fabric8-services/fabric8-common/resource"
 	testtoken "github.com/fabric8-services/fabric8-common/test/token"
 	"github.com/fabric8-services/fabric8-common/token"
+	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/raven-go"
@@ -20,21 +20,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func withTokenManager(t *testing.T) context.Context {
+func withTokenManager() context.Context {
 	// this is just normal context object with no, token
 	// so this should fail saying no token available
 	return tokencontext.ContextWithTokenManager(context.Background(), testtoken.NewManager())
 }
 
-func withIncompleteToken(t *testing.T) context.Context {
-	ctx := withTokenManager(t)
+func withIncompleteToken() context.Context {
+	ctx := withTokenManager()
 	// Here we add a token which is incomplete
 	token := jwt.New(jwt.GetSigningMethod("RS256"))
 	return goajwt.WithJWT(ctx, token)
 }
 
 func withValidToken(t *testing.T, identityID string, identityUsername string) context.Context {
-	ctx := withTokenManager(t)
+	ctx := withTokenManager()
 	// Here we add a token that is perfectly valid
 	token, err := testtoken.GenerateTokenObject(identityID, identityUsername, testtoken.PrivateKey())
 	require.NoErrorf(t, err, "could not generate token: %v", errors.WithStack(err))
@@ -43,17 +43,12 @@ func withValidToken(t *testing.T, identityID string, identityUsername string) co
 
 func TestExtractUserInfo(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-
-	userID := uuid.NewV4()
-	username := "testuser"
-
-	_, err := InitializeSentryClient(nil,
+	close, err := InitializeSentryClient(nil,
 		WithUser(func(ctx context.Context) (*raven.User, error) {
 			m, err := token.ReadManagerFromContext(ctx)
 			if err != nil {
 				return nil, err
 			}
-			fmt.Printf("token manager located")
 			q := *m
 			token := goajwt.ContextJWT(ctx)
 			if token == nil {
@@ -71,6 +66,7 @@ func TestExtractUserInfo(t *testing.T) {
 			}, nil
 		}))
 	require.NoError(t, err)
+	defer close()
 
 	t.Run("random context", func(t *testing.T) {
 		// when
@@ -80,24 +76,26 @@ func TestExtractUserInfo(t *testing.T) {
 		assert.Nil(t, userInfo)
 	})
 
-	t.Run("missing tokem", func(t *testing.T) {
+	t.Run("missing token", func(t *testing.T) {
 		// when
-		userInfo, err := Sentry().userInfo(withTokenManager(t))
+		userInfo, err := Sentry().userInfo(withTokenManager())
 		// then
 		require.Error(t, err)
 		assert.Nil(t, userInfo)
 	})
 
-	t.Run("incomplete tokem", func(t *testing.T) {
+	t.Run("incomplete token", func(t *testing.T) {
 		// when
-		userInfo, err := Sentry().userInfo(withIncompleteToken(t))
+		userInfo, err := Sentry().userInfo(withIncompleteToken())
 		// then
 		require.Error(t, err)
 		assert.Nil(t, userInfo)
 	})
 
-	t.Run("valid tokem", func(t *testing.T) {
+	t.Run("valid token", func(t *testing.T) {
 		// when
+		userID := uuid.NewV4()
+		username := "testuser"
 		userInfo, err := Sentry().userInfo(withValidToken(t, userID.String(), username))
 		// then
 		require.NoError(t, err)
@@ -112,6 +110,7 @@ func TestExtractUserInfo(t *testing.T) {
 }
 
 func TestDSN(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// Set default DSN via env var
 	defaultProject := uuid.NewV4()
 	dsn := fmt.Sprintf("https://%s:%s@test.io/%s", uuid.NewV4(), uuid.NewV4(), defaultProject)

@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/fabric8-services/fabric8-common/token"
 	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
@@ -16,18 +15,18 @@ import (
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	jwtgoa "github.com/goadesign/goa/middleware/security/jwt"
+	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
 
-var config = configurationData()
-var TokenManager = newManager()
-
+// Identity a user identity
 type Identity struct {
 	ID       uuid.UUID
 	Username string
 	Email    string
 }
 
+// NewIdentity returns a new, random identity
 func NewIdentity() *Identity {
 	return &Identity{
 		ID:       uuid.NewV4(),
@@ -37,53 +36,67 @@ func NewIdentity() *Identity {
 }
 
 // EmbedUserTokenInContext generates a token for the given identity and embed it into the context along with token manager
-func EmbedUserTokenInContext(ctx context.Context, identity *Identity) context.Context {
+func EmbedUserTokenInContext(ctx context.Context, identity *Identity, tm token.Manager, config token.ManagerConfiguration) (context.Context, error) {
 	if identity == nil {
 		identity = NewIdentity()
 	}
-	_, token := GenerateSignedUserToken(identity)
-	return embedTokenInContext(ctx, token)
+	_, token, err := GenerateSignedUserToken(identity, config)
+	if err != nil {
+		return nil, err
+	}
+	return embedTokenInContext(ctx, token, tm), nil
 }
 
-// GenerateSignedServiceAccountToken generates a token for the given identity and embed it into the context along with token manager
-func EmbedServiceAccountTokenInContext(ctx context.Context, identity *Identity) context.Context {
-	_, token := GenerateSignedServiceAccountToken(identity)
-	return embedTokenInContext(ctx, token)
+// EmbedServiceAccountTokenInContext generates a token for the given identity and embed it into the context along with token manager
+func EmbedServiceAccountTokenInContext(ctx context.Context, identity *Identity, tm token.Manager, config token.ManagerConfiguration) (context.Context, error) {
+	_, token, err := GenerateSignedServiceAccountToken(identity, config)
+	if err != nil {
+		return nil, err
+	}
+	return embedTokenInContext(ctx, token, tm), nil
 }
 
-func embedTokenInContext(ctx context.Context, token *jwt.Token) context.Context {
+func embedTokenInContext(ctx context.Context, token *jwt.Token, tm token.Manager) context.Context {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	jwtCtx := jwtgoa.WithJWT(ctx, token)
 	jwtCtx = ContextWithRequest(jwtCtx)
-	return tokencontext.ContextWithTokenManager(jwtCtx, TokenManager)
+	return tokencontext.ContextWithTokenManager(jwtCtx, tm)
 }
 
 // GenerateSignedUserToken generates a JWT token and signs it using the default private key
-func GenerateSignedUserToken(identity *Identity) (string, *jwt.Token) {
+func GenerateSignedUserToken(identity *Identity, config token.ManagerConfiguration) (string, *jwt.Token, error) {
 	token := generateUserToken(identity)
-	tokenStr := signToken(token)
-
-	return tokenStr, token
+	tokenStr, err := signToken(token, config)
+	if err != nil {
+		return "", nil, errs.Wrapf(err, "unable to generate user token")
+	}
+	return tokenStr, token, nil
 }
 
-func GenerateSignedServiceAccountToken(identity *Identity) (string, *jwt.Token) {
+// GenerateSignedServiceAccountToken generates a JWT SA token and signs it using the default private key
+func GenerateSignedServiceAccountToken(identity *Identity, config token.ManagerConfiguration) (string, *jwt.Token, error) {
 	token := generateServiceAccountToken(identity)
-	tokenStr := signToken(token)
-
-	return tokenStr, token
+	tokenStr, err := signToken(token, config)
+	if err != nil {
+		return "", nil, errs.Wrapf(err, "unable to generate SA token")
+	}
+	return tokenStr, token, nil
 }
 
-func signToken(token *jwt.Token) string {
-	key, _ := privateKey()
+func signToken(token *jwt.Token, config token.ManagerConfiguration) (string, error) {
+	key, _, err := privateKey(config)
+	if err != nil {
+		return "", err
+	}
 	tokenStr, err := token.SignedString(key)
 	if err != nil {
-		panic(err.Error())
+		return "", errs.Wrapf(err, "unable to sign token")
 	}
 	token.Raw = tokenStr
 
-	return tokenStr
+	return tokenStr, nil
 }
 
 // generateUserToken generates a JWT token
@@ -118,6 +131,7 @@ func generateServiceAccountToken(identity *Identity) *jwt.Token {
 	return token
 }
 
+// ContextWithRequest return a Goa context with a request
 func ContextWithRequest(ctx context.Context) context.Context {
 	if ctx == nil {
 		ctx = context.Background()
@@ -134,28 +148,25 @@ func ContextWithRequest(ctx context.Context) context.Context {
 	return goa.NewContext(goa.WithAction(ctx, "Test"), rw, req, url.Values{})
 }
 
-func ContextWithTokenAndRequestID() (context.Context, *Identity, string) {
+// ContextWithTokenAndRequestID returns a context with an embedded user token
+func ContextWithTokenAndRequestID(tm token.Manager, config token.ManagerConfiguration) (context.Context, *Identity, string, error) {
 	identity := NewIdentity()
-	ctx := EmbedUserTokenInContext(nil, identity)
+	ctx, err := EmbedUserTokenInContext(nil, identity, tm, config)
+	if err != nil {
+		return nil, nil, "", err
+	}
 	reqID := uuid.NewV4().String()
 	ctx = client.SetContextRequestID(ctx, reqID)
 
-	return ctx, identity, reqID
+	return ctx, identity, reqID, nil
 }
 
-func ContextWithTokenManager() context.Context {
-	return tokencontext.ContextWithTokenManager(context.Background(), TokenManager)
+// ContextWithTokenManager returns a context with the given token manager
+func ContextWithTokenManager(tm token.Manager) context.Context {
+	return tokencontext.ContextWithTokenManager(context.Background(), tm)
 }
 
-func configurationData() *configuration.ConfigurationData {
-	config, err := configuration.GetConfigurationData()
-	if err != nil {
-		panic("failed to load configuration: " + err.Error())
-	}
-	return config
-}
-
-func newManager() token.Manager {
+func newManager(config token.ManagerConfiguration) token.Manager {
 	tm, err := token.NewManager(config)
 	if err != nil {
 		panic("failed to create token manager: " + err.Error())
@@ -163,32 +174,40 @@ func newManager() token.Manager {
 	return tm
 }
 
-func privateKey() (*rsa.PrivateKey, string) {
+func privateKey(config token.ManagerConfiguration) (*rsa.PrivateKey, string, error) {
 	key := config.GetDevModePrivateKey()
 	pk, err := jwt.ParseRSAPrivateKeyFromPEM(key)
 	if err != nil {
-		panic(err.Error())
+		return nil, "", errs.Wrapf(err, "unable to get 'dev mode' private key")
 	}
-	return pk, "test-key"
+	return pk, "test-key", nil
 }
 
 // ServiceAsUser creates a new service and fill the context with input Identity
-func ServiceAsUser(serviceName string, identity *Identity) *goa.Service {
+func ServiceAsUser(serviceName string, identity *Identity, tm token.Manager, config token.ManagerConfiguration) (*goa.Service, error) {
 	svc := goa.New(serviceName)
-	svc.Context = EmbedUserTokenInContext(nil, identity)
-	return svc
+	ctx, err := EmbedUserTokenInContext(nil, identity, tm, config)
+	if err != nil {
+		return nil, err
+	}
+	svc.Context = ctx
+	return svc, nil
 }
 
 // UnsecuredService creates a new service with token manager injected by without any identity in context
-func UnsecuredService(serviceName string) *goa.Service {
+func UnsecuredService(serviceName string, tm token.Manager) *goa.Service {
 	svc := goa.New(serviceName)
-	svc.Context = tokencontext.ContextWithTokenManager(svc.Context, TokenManager)
+	svc.Context = tokencontext.ContextWithTokenManager(svc.Context, tm)
 	return svc
 }
 
 // ServiceAsServiceAccountUser generates the minimal service needed to satisfy the condition of being a service account.
-func ServiceAsServiceAccountUser(serviceName string, identity *Identity) *goa.Service {
+func ServiceAsServiceAccountUser(serviceName string, identity *Identity, tm token.Manager, config token.ManagerConfiguration) (*goa.Service, error) {
 	svc := goa.New(serviceName)
-	svc.Context = EmbedServiceAccountTokenInContext(nil, identity)
-	return svc
+	ctx, err := EmbedServiceAccountTokenInContext(nil, identity, tm, config)
+	if err != nil {
+		return nil, err
+	}
+	svc.Context = ctx
+	return svc, nil
 }
