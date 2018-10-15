@@ -49,7 +49,7 @@ BUILD_TIME=`date -u '+%Y-%m-%dT%H:%M:%SZ'`
 # If nothing was specified, run all targets as if in a fresh clone
 .PHONY: all
 ## Default target - fetch dependencies and build.
-all: prebuild-check deps build
+all: prebuild-check deps generate build
 
 .PHONY: format-go-code
 ## Formats any go file that differs from gofmt's style
@@ -147,7 +147,7 @@ govet:
 
 .PHONY: build
 ## build all packages
-build: deps
+build: deps generate
 	@echo "building all packages..."
 	go build ./...
 
@@ -247,7 +247,7 @@ clean-generated:
 clean: $(CLEAN_TARGETS)
 
 .PHONY: generate
-generate: prebuild-check migration/sqlbindata_test.go
+generate: migration/sqlbindata_test.go
 
 migration/sqlbindata_test.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-test-files/*.sql)
 	$(GO_BINDATA_BIN) \
