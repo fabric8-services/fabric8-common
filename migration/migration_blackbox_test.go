@@ -124,7 +124,7 @@ func checkMigrate(t *testing.T, gormDB *gorm.DB, dialect gorm.Dialect) {
 func checkRollback(t *testing.T, gormDB *gorm.DB, dialect gorm.Dialect) {
 	assert.True(t, dialect.HasTable("users"))
 	assert.True(t, dialect.HasColumn("users", "name"))
-	assert.True(t, dialect.HasColumn("users", "age"))
+	assert.True(t, dialect.HasColumn("users", "allocated_storage"))
 
 	count := -1
 	gormDB.Table("users").Count(&count)
@@ -142,7 +142,7 @@ func (d rollbackData) Asset(name string) ([]byte, error) {
 func (d rollbackData) AssetNameWithArgs() [][]string {
 	names := [][]string{
 		{"100-bootstrap.sql"},        // add version table
-		{"101-create-tables.sql"},    // add users table with id, name, age (smallint)
+		{"101-create-tables.sql"},    // add users table with id, name, allocated_storage (smallint)
 		{"102-insert-test-data.sql"}, // insert record with wrong data (out of range for smallint)
 	}
 	return names

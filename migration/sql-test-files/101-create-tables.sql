@@ -6,5 +6,5 @@ CREATE TABLE users (
     deleted_at timestamp with time zone,
     id uuid primary key DEFAULT uuid_generate_v4() NOT NULL,
     name text,
-    age smallint
+    allocated_storage smallint
 );
