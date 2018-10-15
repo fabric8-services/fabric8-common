@@ -27,12 +27,12 @@ func TestFetchKeys(t *testing.T) {
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth-ok"
 	}
-	tm, err := token.NewManager(config, httpsupport.WithRoundTripper(r.Transport))
+	tm, err := token.NewManager(config, httpsupport.WithRoundTripper(r))
 	require.NoError(t, err)
 
 	t.Run("ok", func(t *testing.T) {
 		// when
-		loadedKeys, err := jwk.FetchKeys("https://auth-ok/api/token/keys", httpsupport.WithRoundTripper(r.Transport))
+		loadedKeys, err := jwk.FetchKeys("https://auth-ok/api/token/keys", httpsupport.WithRoundTripper(r))
 		// then all three keys are loaded
 		require.NoError(t, err)
 		require.Len(t, loadedKeys, 3)
@@ -48,7 +48,7 @@ func TestFetchKeys(t *testing.T) {
 	t.Run("failure", func(t *testing.T) {
 		t.Run("server error", func(t *testing.T) {
 			// when
-			loadedKeys, err := jwk.FetchKeys("https://auth-error/api/token/keys", httpsupport.WithRoundTripper(r.Transport))
+			loadedKeys, err := jwk.FetchKeys("https://auth-error/api/token/keys", httpsupport.WithRoundTripper(r))
 			// then
 			require.Error(t, err)
 			assert.Empty(t, loadedKeys)
@@ -56,7 +56,7 @@ func TestFetchKeys(t *testing.T) {
 
 		t.Run("invalid JSON response", func(t *testing.T) {
 			// when
-			loadedKeys, err := jwk.FetchKeys("https://auth-json/api/token/keys", httpsupport.WithRoundTripper(r.Transport))
+			loadedKeys, err := jwk.FetchKeys("https://auth-json/api/token/keys", httpsupport.WithRoundTripper(r))
 			// then
 			require.Error(t, err)
 			assert.Empty(t, loadedKeys)

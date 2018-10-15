@@ -15,7 +15,7 @@ import (
 )
 
 // Doer is a wrapper interface for goa client Doer
-type HttpDoer interface {
+type HTTPDoer interface {
 	client.Doer
 }
 
@@ -28,13 +28,13 @@ type configuration interface {
 	IsPostgresDeveloperModeEnabled() bool
 }
 
-// HTTPClientDoer implements HttpDoer
+// HTTPClientDoer implements HTTPDoer
 type HTTPClientDoer struct {
 	HTTPClient HTTPClient
 }
 
-// DefaultHttpDoer creates a new HttpDoer with default http client
-func DefaultHttpDoer() HttpDoer {
+// DefaultHTTPDoer creates a new HTTPDoer with default http client
+func DefaultHTTPDoer() HTTPDoer {
 	return &HTTPClientDoer{HTTPClient: http.DefaultClient}
 }
 
