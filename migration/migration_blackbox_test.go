@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/fabric8-services/fabric8-common/gormsupport"
 	"github.com/fabric8-services/fabric8-common/migration"
 	"github.com/fabric8-services/fabric8-common/resource"
@@ -21,41 +23,47 @@ const (
 
 var host, port string
 
-func setupTest(t *testing.T) {
+type MigrationTestSuite struct {
+	suite.Suite
+}
+
+func TestMigration(t *testing.T) {
+	suite.Run(t, new(MigrationTestSuite))
+}
+
+func (s *MigrationTestSuite) SetupTest() {
+	resource.Require(s.T(), resource.Database)
+
 	host = os.Getenv("F8_POSTGRES_HOST")
-	require.NotEmpty(t, host, "F8_POSTGRES_HOST is not set")
+	require.NotEmpty(s.T(), host, "F8_POSTGRES_HOST is not set")
 	port = os.Getenv("F8_POSTGRES_PORT")
-	require.NotEmpty(t, port, "F8_POSTGRES_PORT is not set")
+	require.NotEmpty(s.T(), port, "F8_POSTGRES_PORT is not set")
 
 	dbConfig := fmt.Sprintf("host=%s port=%s user=postgres password=mysecretpassword sslmode=disable connect_timeout=5", host, port)
 
 	db, err := sql.Open("postgres", dbConfig)
-	require.NoError(t, err, "cannot connect to database: %s", dbName)
+	require.NoError(s.T(), err, "cannot connect to database: %s", dbName)
 	defer db.Close()
 
 	_, err = db.Exec("DROP DATABASE " + dbName)
 	if err != nil && !gormsupport.IsInvalidCatalogName(err) {
-		require.NoError(t, err, "failed to drop database '%s'", dbName)
+		require.NoError(s.T(), err, "failed to drop database '%s'", dbName)
 	}
 
 	_, err = db.Exec("CREATE DATABASE " + dbName)
-	require.NoError(t, err, "failed to create database '%s'", dbName)
+	require.NoError(s.T(), err, "failed to create database '%s'", dbName)
 }
 
-func TestMigrate(t *testing.T) {
-	resource.Require(t, resource.Database)
-
-	setupTest(t)
-
+func (s *MigrationTestSuite) TestMigrate() {
 	dbConfig := fmt.Sprintf("host=%s port=%s user=postgres password=mysecretpassword dbname=%s sslmode=disable connect_timeout=5",
 		host, port, dbName)
 
 	sqlDB, err := sql.Open("postgres", dbConfig)
-	require.NoError(t, err, "cannot connect to DB '%s'", dbName)
+	require.NoError(s.T(), err, "cannot connect to DB '%s'", dbName)
 	defer sqlDB.Close()
 
 	gormDB, err := gorm.Open("postgres", dbConfig)
-	require.NoError(t, err, "cannot connect to DB '%s'", dbName)
+	require.NoError(s.T(), err, "cannot connect to DB '%s'", dbName)
 	defer gormDB.Close()
 
 	dialect := gormDB.Dialect()
@@ -63,24 +71,20 @@ func TestMigrate(t *testing.T) {
 
 	err = migrate(gormDB.DB(), dbName)
 
-	assert.Nil(t, err)
-	checkMigrate(t, gormDB, dialect)
+	require.NoError(s.T(), err)
+	checkMigrate(s.T(), gormDB, dialect)
 }
 
-func TestRollback(t *testing.T) {
-	resource.Require(t, resource.Database)
-
-	setupTest(t)
-
+func (s *MigrationTestSuite) TestRollback() {
 	dbConfig := fmt.Sprintf("host=%s port=%s user=postgres password=mysecretpassword dbname=%s sslmode=disable connect_timeout=5",
 		host, port, dbName)
 
 	sqlDB, err := sql.Open("postgres", dbConfig)
-	require.NoError(t, err, "cannot connect to DB '%s'", dbName)
+	require.NoError(s.T(), err, "cannot connect to DB '%s'", dbName)
 	defer sqlDB.Close()
 
 	gormDB, err := gorm.Open("postgres", dbConfig)
-	require.NoError(t, err, "cannot connect to DB '%s'", dbName)
+	require.NoError(s.T(), err, "cannot connect to DB '%s'", dbName)
 	defer gormDB.Close()
 
 	dialect := gormDB.Dialect()
@@ -88,8 +92,8 @@ func TestRollback(t *testing.T) {
 
 	err = migration.Migrate(gormDB.DB(), dbName, rollbackData{})
 
-	assert.NotNil(t, err)
-	checkRollback(t, gormDB, dialect)
+	require.NoError(s.T(), err)
+	checkRollback(s.T(), gormDB, dialect)
 }
 
 func checkMigrate(t *testing.T, gormDB *gorm.DB, dialect gorm.Dialect) {
@@ -108,13 +112,13 @@ func checkMigrate(t *testing.T, gormDB *gorm.DB, dialect gorm.Dialect) {
 	defer rows.Close()
 
 	var name, namespace, cluster string
-	assert.True(t, rows.Next())
+	require.True(t, rows.Next())
 	rows.Scan(&name, &cluster, &namespace)
 	assert.Equal(t, "osio-stage", name)
 	assert.Equal(t, "cluster1.com", cluster)
 	assert.Equal(t, "", namespace)
 
-	assert.True(t, rows.Next())
+	require.True(t, rows.Next())
 	rows.Scan(&name, &cluster, &namespace)
 	assert.Equal(t, "osio-prod", name)
 	assert.Equal(t, "cluster1.com", cluster)
