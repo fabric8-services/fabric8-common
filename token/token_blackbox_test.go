@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	testsupport "github.com/fabric8-services/fabric8-common/test"
 	testconfiguration "github.com/fabric8-services/fabric8-common/test/configuration"
 	"github.com/fabric8-services/fabric8-common/token"
@@ -20,6 +21,8 @@ import (
 )
 
 func TestServiceAccount(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
 	serviceName := "test-service"
 
 	t.Run("Valid", func(t *testing.T) {
@@ -60,6 +63,8 @@ func TestServiceAccount(t *testing.T) {
 }
 
 func TestSpecificServiceAccount(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
 	serviceName := "test-service"
 	t.Run("Valid", func(t *testing.T) {
 		// given
@@ -113,6 +118,7 @@ func createInvalidSAContext() context.Context {
 }
 
 func TestAddLoginRequiredHeader(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// given
 	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
 	tm, err := token.NewManager(config)
@@ -151,6 +157,7 @@ func assertHeaders(t *testing.T, tm token.Manager, tokenString string) {
 }
 
 func TestParseValidTokenOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// given
 	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
 	tm, err := token.NewManager(config)
@@ -186,6 +193,7 @@ func checkClaim(t *testing.T, token *jwt.Token, claimName string, expectedValue 
 }
 
 func TestParseToken(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// given
 	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
 	tm, err := token.NewManager(config)
@@ -239,6 +247,7 @@ func checkValidToken(t *testing.T, tm token.Manager, token string) {
 }
 
 func TestCheckClaimsOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// given
 	claims := &token.TokenClaims{
 		Email:    "somemail@domain.com",
@@ -252,26 +261,41 @@ func TestCheckClaimsOK(t *testing.T) {
 }
 
 func TestCheckClaimsFails(t *testing.T) {
-	claimsNoEmail := &token.TokenClaims{
-		Username: "testuser",
-	}
-	claimsNoEmail.Subject = uuid.NewV4().String()
-	assert.NotNil(t, token.CheckClaims(claimsNoEmail))
+	resource.Require(t, resource.UnitTest)
 
-	claimsNoUsername := &token.TokenClaims{
-		Email: "somemail@domain.com",
-	}
-	claimsNoUsername.Subject = uuid.NewV4().String()
-	assert.NotNil(t, token.CheckClaims(claimsNoUsername))
+	t.Run("no email", func(t *testing.T) {
+		// given
+		claimsNoEmail := &token.TokenClaims{
+			Username: "testuser",
+		}
+		claimsNoEmail.Subject = uuid.NewV4().String()
+		// then
+		assert.NotNil(t, token.CheckClaims(claimsNoEmail))
+	})
 
-	claimsNoSubject := &token.TokenClaims{
-		Email:    "somemail@domain.com",
-		Username: "testuser",
-	}
-	assert.NotNil(t, token.CheckClaims(claimsNoSubject))
+	t.Run("no username", func(t *testing.T) {
+		// given
+		claimsNoUsername := &token.TokenClaims{
+			Email: "somemail@domain.com",
+		}
+		claimsNoUsername.Subject = uuid.NewV4().String()
+		// then
+		assert.NotNil(t, token.CheckClaims(claimsNoUsername))
+	})
+
+	t.Run("no subject", func(t *testing.T) {
+		// given
+		claimsNoSubject := &token.TokenClaims{
+			Email:    "somemail@domain.com",
+			Username: "testuser",
+		}
+		// then
+		assert.NotNil(t, token.CheckClaims(claimsNoSubject))
+	})
 }
 
 func TestLocateTokenInContext(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// given
 	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
 	tm, err := token.NewManager(config)

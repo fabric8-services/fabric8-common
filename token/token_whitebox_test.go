@@ -3,6 +3,8 @@ package token
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
+
 	testconfiguration "github.com/fabric8-services/fabric8-common/test/configuration"
 	testkeys "github.com/fabric8-services/fabric8-common/test/keys"
 	"github.com/stretchr/testify/assert"
@@ -10,7 +12,7 @@ import (
 )
 
 func TestKeyLoaded(t *testing.T) {
-
+	resource.Require(t, resource.UnitTest)
 	// given
 	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
 	config.GetAuthServiceURLFunc = func() string {
