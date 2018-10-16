@@ -6,7 +6,7 @@ import "github.com/fabric8-services/fabric8-common/migration"
 type migrateData struct {
 }
 
-func migrate(db *sql.DB, catalog string) error {
+func Migrate(db *sql.DB, catalog string) error {
 	return migration.Migrate(db, catalog, migrateData{})
 }
 

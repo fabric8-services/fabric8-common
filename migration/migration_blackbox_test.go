@@ -69,7 +69,7 @@ func (s *MigrationTestSuite) TestMigrate() {
 	dialect := gormDB.Dialect()
 	dialect.SetDB(sqlDB)
 
-	err = migrate(gormDB.DB(), dbName)
+	err = Migrate(gormDB.DB(), dbName)
 
 	require.NoError(s.T(), err)
 	checkMigrate(s.T(), gormDB, dialect)
@@ -92,7 +92,7 @@ func (s *MigrationTestSuite) TestRollback() {
 
 	err = migration.Migrate(gormDB.DB(), dbName, rollbackData{})
 
-	require.NoError(s.T(), err)
+	require.Error(s.T(), err)
 	checkRollback(s.T(), gormDB, dialect)
 }
 
