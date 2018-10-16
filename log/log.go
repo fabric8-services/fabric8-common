@@ -243,7 +243,7 @@ func Panic(ctx context.Context, fields map[string]interface{}, format string, ar
 		}
 
 		if len(args) > 0 {
-			entry.WithFields(fields).Panicf(format, args)
+			entry.WithFields(fields).Panicf(format, args...)
 		} else {
 			entry.WithFields(fields).Panicln(format)
 		}

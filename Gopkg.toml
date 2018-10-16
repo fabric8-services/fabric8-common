@@ -40,6 +40,7 @@ required = [
   "github.com/wadey/gocovmerge",
   "github.com/pilu/fresh",
   "github.com/davecgh/go-spew/spew",
+  "github.com/gojuno/minimock/cmd/minimock",
 ]
 
 [prune]
@@ -106,7 +107,10 @@ required = [
   name = "github.com/getsentry/raven-go"
   revision = "084a9de9eb0361fbd5ded14b55c84e5493a5d7f6"
 
-# [[constraint]]
-#   name = "github.com/dnaeon/go-vcr"
-#   revision= "9d71b8a6df86e00127f96bc8dabc09856ab8afdb"
+[[constraint]]
+  name = "github.com/dnaeon/go-vcr"
+  revision= "5637cf3d8a31b20882d79bd0e53a186d3821b155"
 
+[[constraint]]
+  name = "github.com/gojuno/minimock"
+  branch = "master"
