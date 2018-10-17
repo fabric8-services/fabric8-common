@@ -119,10 +119,11 @@ func NewManager(config ManagerConfiguration, options ...httpsupport.HTTPClientOp
 }
 
 // NewManagerWithPublicKey returns a new token Manager for handling tokens with the only public key
-func NewManagerWithPublicKey(id string, key *rsa.PublicKey) Manager {
+func NewManagerWithPublicKey(id string, key *rsa.PublicKey, config ManagerConfiguration) Manager {
 	return &tokenManager{
 		publicKeysMap: map[string]*rsa.PublicKey{id: key},
 		publicKeys:    []*jwk.PublicKey{{KeyID: id, Key: key}},
+		config:        config,
 	}
 }
 
@@ -215,7 +216,7 @@ func (mgm *tokenManager) Parse(ctx context.Context, tokenString string) (*jwt.To
 // AddLoginRequiredHeader adds "WWW-Authenticate: LOGIN" header to the response
 func (mgm *tokenManager) AddLoginRequiredHeader(rw http.ResponseWriter) {
 	rw.Header().Add("Access-Control-Expose-Headers", "WWW-Authenticate")
-	loginURL := mgm.config.GetAuthServiceURL() + "/api/login"
+	loginURL := httpsupport.AddTrailingSlashToURL(mgm.config.GetAuthServiceURL()) + "api/login"
 	rw.Header().Set("WWW-Authenticate", fmt.Sprintf("LOGIN url=%s, description=\"re-login is required\"", loginURL))
 }
 
