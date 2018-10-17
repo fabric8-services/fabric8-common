@@ -237,3 +237,35 @@ endif
 ifndef DEP_BIN
 	$(error The "$(DEP_BIN_NAME)" executable could not be found in your PATH)
 endif
+
+# For the global "clean" target all targets in this variable will be executed
+CLEAN_TARGETS =
+
+CLEAN_TARGETS += clean-artifacts
+.PHONY: clean-artifacts
+## Removes the ./bin directory.
+clean-artifacts:
+	-rm -rf $(INSTALL_PREFIX)
+
+CLEAN_TARGETS += clean-object-files
+.PHONY: clean-object-files
+## Runs go clean to remove any executables or other object files.
+clean-object-files:
+	go clean ./...
+
+CLEAN_TARGETS += clean-generated
+.PHONY: clean-generated
+## Removes all generated code.
+clean-generated:
+	-rm -f ./migration/sqlbindata_test.go
+
+CLEAN_TARGETS += clean-vendor
+.PHONY: clean-vendor
+## Removes the ./vendor directory.
+clean-vendor:
+	-rm -rf $(VENDOR_DIR)
+
+# Keep this "clean" target here at the bottom
+.PHONY: clean
+## Runs all clean-* targets.
+clean: $(CLEAN_TARGETS)

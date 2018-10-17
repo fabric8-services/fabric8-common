@@ -50,26 +50,26 @@ func (s *TokenManagerTestSuite) TestServiceAccount() {
 		claims["service_accountname"] = serviceName
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.True(s.T(), token.IsServiceAccount(ctx))
+		assert.True(t, token.IsServiceAccount(ctx))
 	})
 	s.T().Run("Missing name", func(t *testing.T) {
 		// given
 		claims := jwt.MapClaims{}
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.False(s.T(), token.IsServiceAccount(ctx))
+		assert.False(t, token.IsServiceAccount(ctx))
 	})
 	s.T().Run("Missing token", func(t *testing.T) {
 		// given
 		ctx := context.Background()
 		// then
-		assert.False(s.T(), token.IsServiceAccount(ctx))
+		assert.False(t, token.IsServiceAccount(ctx))
 	})
 	s.T().Run("Nil token", func(t *testing.T) {
 		// given
 		ctx := goajwt.WithJWT(context.Background(), nil)
 		// then
-		assert.False(s.T(), token.IsServiceAccount(ctx))
+		assert.False(t, token.IsServiceAccount(ctx))
 	})
 	s.T().Run("Wrong data type", func(t *testing.T) {
 		// given
@@ -77,7 +77,7 @@ func (s *TokenManagerTestSuite) TestServiceAccount() {
 		claims["service_accountname"] = 100
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.False(s.T(), token.IsServiceAccount(ctx))
+		assert.False(t, token.IsServiceAccount(ctx))
 	})
 }
 
@@ -89,20 +89,20 @@ func (s *TokenManagerTestSuite) TestSpecificServiceAccount() {
 		claims["service_accountname"] = serviceName
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.True(s.T(), token.IsSpecificServiceAccount(ctx, "dummy-service", serviceName))
+		assert.True(t, token.IsSpecificServiceAccount(ctx, "dummy-service", serviceName))
 	})
 	s.T().Run("Missing name", func(t *testing.T) {
 		// given
 		claims := jwt.MapClaims{}
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.False(s.T(), token.IsSpecificServiceAccount(ctx, serviceName))
+		assert.False(t, token.IsSpecificServiceAccount(ctx, serviceName))
 	})
 	s.T().Run("Nil token", func(t *testing.T) {
 		// given
 		ctx := goajwt.WithJWT(context.Background(), nil)
 		// then
-		assert.False(s.T(), token.IsSpecificServiceAccount(ctx, serviceName))
+		assert.False(t, token.IsSpecificServiceAccount(ctx, serviceName))
 	})
 	s.T().Run("Wrong data type", func(t *testing.T) {
 		// given
@@ -110,13 +110,13 @@ func (s *TokenManagerTestSuite) TestSpecificServiceAccount() {
 		claims["service_accountname"] = 100
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.False(s.T(), token.IsSpecificServiceAccount(ctx, serviceName))
+		assert.False(t, token.IsSpecificServiceAccount(ctx, serviceName))
 	})
 	s.T().Run("Missing token", func(t *testing.T) {
 		// given
 		ctx := context.Background()
 		// then
-		assert.False(s.T(), token.IsSpecificServiceAccount(ctx, serviceName))
+		assert.False(t, token.IsSpecificServiceAccount(ctx, serviceName))
 	})
 	s.T().Run("Wrong name", func(t *testing.T) {
 		// given
@@ -124,7 +124,7 @@ func (s *TokenManagerTestSuite) TestSpecificServiceAccount() {
 		claims["service_accountname"] = serviceName + "_asdsa"
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.False(s.T(), token.IsSpecificServiceAccount(ctx, serviceName))
+		assert.False(t, token.IsSpecificServiceAccount(ctx, serviceName))
 	})
 }
 
@@ -135,7 +135,7 @@ func (s *TokenManagerTestSuite) TestAddLoginRequiredHeader() {
 		// when
 		s.tm.AddLoginRequiredHeader(rw)
 		// then
-		checkLoginRequiredHeader(s.T(), rw)
+		checkLoginRequiredHeader(t, rw)
 	})
 	s.T().Run("with header set", func(t *testing.T) {
 		// given
@@ -144,7 +144,7 @@ func (s *TokenManagerTestSuite) TestAddLoginRequiredHeader() {
 		// when
 		s.tm.AddLoginRequiredHeader(rw)
 		// then
-		checkLoginRequiredHeader(s.T(), rw)
+		checkLoginRequiredHeader(t, rw)
 	})
 }
 
@@ -164,18 +164,18 @@ func (s *TokenManagerTestSuite) TestParseValidTokenOK() {
 		// when
 		claims, err := s.tm.ParseToken(context.Background(), generatedToken)
 		// then
-		require.Nil(s.T(), err)
-		assert.Equal(s.T(), identity.ID.String(), claims.Subject)
-		assert.Equal(s.T(), identity.Username, claims.Username)
+		require.Nil(t, err)
+		assert.Equal(t, identity.ID.String(), claims.Subject)
+		assert.Equal(t, identity.Username, claims.Username)
 	})
 
 	s.T().Run("parse", func(t *testing.T) {
 		// when
 		jwtToken, err := s.tm.Parse(context.Background(), generatedToken)
 		// then
-		require.Nil(s.T(), err)
-		checkClaim(s.T(), jwtToken, "sub", identity.ID.String())
-		checkClaim(s.T(), jwtToken, "preferred_username", identity.Username)
+		require.Nil(t, err)
+		checkClaim(t, jwtToken, "sub", identity.ID.String())
+		checkClaim(t, jwtToken, "preferred_username", identity.Username)
 	})
 }
 
@@ -187,8 +187,8 @@ func (s *TokenManagerTestSuite) TestAuthServiceURL() {
 			return "https://auth.prod-preview.openshift.io"
 		}
 		tm, err := token.NewManager(config)
-		require.NoError(s.T(), err)
-		assert.Len(s.T(), tm.PublicKeys(), 3)
+		require.NoError(t, err)
+		assert.Len(t, tm.PublicKeys(), 3)
 	})
 
 	s.T().Run("OK if auth URL has trailing slash", func(t *testing.T) {
@@ -196,8 +196,8 @@ func (s *TokenManagerTestSuite) TestAuthServiceURL() {
 			return "https://auth.prod-preview.openshift.io/"
 		}
 		tm, err := token.NewManager(config)
-		require.NoError(s.T(), err)
-		assert.Len(s.T(), tm.PublicKeys(), 3)
+		require.NoError(t, err)
+		assert.Len(t, tm.PublicKeys(), 3)
 	})
 
 	s.T().Run("OK if auth URL has trailing slash", func(t *testing.T) {
@@ -205,7 +205,7 @@ func (s *TokenManagerTestSuite) TestAuthServiceURL() {
 			return "https://somedomain.com/"
 		}
 		_, err := token.NewManager(config)
-		require.Error(s.T(), err)
+		require.Error(t, err)
 	})
 }
 
@@ -218,27 +218,27 @@ func checkClaim(t *testing.T, token *jwt.Token, claimName string, expectedValue 
 
 func (s *TokenManagerTestSuite) TestParseToken() {
 	s.T().Run("Invalid token format", func(t *testing.T) {
-		checkInvalidToken(s.T(), s.tm, "7423742yuuiy-INVALID-73842342389h", "token contains an invalid number of segments")
+		checkInvalidToken(t, s.tm, "7423742yuuiy-INVALID-73842342389h", "token contains an invalid number of segments")
 	})
 
 	s.T().Run("Missing kid", func(t *testing.T) {
-		checkInvalidToken(s.T(), s.tm, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMjgyYjI5Yy01MTczLTQyZDgtODE0NS1iNDVmYTFlMzUzOGIiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTE3MDE1OTUyLCJpc3MiOiJ0ZXN0IiwiYXVkIjoiZmFicmljOC1vbmxpbmUtcGxhdGZvcm0iLCJzdWIiOiIyMzk4NDM5OC04NTVhLTQyZDYtYTdmZS05MzZiYjRlOTJhMGMiLCJ0eXAiOiJCZWFyZXIiLCJzZXNzaW9uX3N0YXRlIjoiZWFkYzA2NmMtMTIzNC00YTU2LTlmMzUtY2U3MDdiNTdhNGU5IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sImFwcHJvdmVkIjp0cnVlLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QiLCJjb21wYW55IjoiIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiIiwiZmFtaWx5X25hbWUiOiIiLCJlbWFpbCI6InRAdGVzdC50In0.mx6DrW3kUQEvsz5Bmaea3nXD9_DB5fBDyNIfanr3u_RFWQyV0romzrAjBP3dKz_dgTS4S5WX2Q1XZiPLjc13PMTCQTNUXp6bFJ5RlDEqX6rJP0Ps9X7bke1pcqS7RhV9cnR1KNH8428bYoKCV57eQnhWtQoCQC1Db6YWJoQNJJLt0IHKCOx7c06r01VF1zcIk1dHnzzz9Qv5aACGXAi8iEJsQ1vURSh7fMETfSJl0UrLJsxGo60fHX9p74cu7bcgD-Zj86axRfgbaHuxn1MMJblltcPsG_TnsMOtmqQr4wlszWTQzwbLnemn8XfwPU8XYc49rVnkiZoB9-BV-oYIxg", "There is no 'kid' header in the token")
+		checkInvalidToken(t, s.tm, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMjgyYjI5Yy01MTczLTQyZDgtODE0NS1iNDVmYTFlMzUzOGIiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTE3MDE1OTUyLCJpc3MiOiJ0ZXN0IiwiYXVkIjoiZmFicmljOC1vbmxpbmUtcGxhdGZvcm0iLCJzdWIiOiIyMzk4NDM5OC04NTVhLTQyZDYtYTdmZS05MzZiYjRlOTJhMGMiLCJ0eXAiOiJCZWFyZXIiLCJzZXNzaW9uX3N0YXRlIjoiZWFkYzA2NmMtMTIzNC00YTU2LTlmMzUtY2U3MDdiNTdhNGU5IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sImFwcHJvdmVkIjp0cnVlLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QiLCJjb21wYW55IjoiIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiIiwiZmFtaWx5X25hbWUiOiIiLCJlbWFpbCI6InRAdGVzdC50In0.mx6DrW3kUQEvsz5Bmaea3nXD9_DB5fBDyNIfanr3u_RFWQyV0romzrAjBP3dKz_dgTS4S5WX2Q1XZiPLjc13PMTCQTNUXp6bFJ5RlDEqX6rJP0Ps9X7bke1pcqS7RhV9cnR1KNH8428bYoKCV57eQnhWtQoCQC1Db6YWJoQNJJLt0IHKCOx7c06r01VF1zcIk1dHnzzz9Qv5aACGXAi8iEJsQ1vURSh7fMETfSJl0UrLJsxGo60fHX9p74cu7bcgD-Zj86axRfgbaHuxn1MMJblltcPsG_TnsMOtmqQr4wlszWTQzwbLnemn8XfwPU8XYc49rVnkiZoB9-BV-oYIxg", "There is no 'kid' header in the token")
 	})
 
 	s.T().Run("Unknown kid", func(t *testing.T) {
-		checkInvalidToken(s.T(), s.tm, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVua25vd25raWQifQ.eyJqdGkiOiIwMjgyYjI5Yy01MTczLTQyZDgtODE0NS1iNDVmYTFlMzUzOGIiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTE3MDE1OTUyLCJpc3MiOiJ0ZXN0IiwiYXVkIjoiZmFicmljOC1vbmxpbmUtcGxhdGZvcm0iLCJzdWIiOiIyMzk4NDM5OC04NTVhLTQyZDYtYTdmZS05MzZiYjRlOTJhMGMiLCJ0eXAiOiJCZWFyZXIiLCJzZXNzaW9uX3N0YXRlIjoiZWFkYzA2NmMtMTIzNC00YTU2LTlmMzUtY2U3MDdiNTdhNGU5IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sImFwcHJvdmVkIjp0cnVlLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QiLCJjb21wYW55IjoiIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiIiwiZmFtaWx5X25hbWUiOiIiLCJlbWFpbCI6InRAdGVzdC50In0.ewwDOye1c5mA91YjgMQvk0x4RCXeosKVgag-UeG5lHQASWPv3_cpw0BMahG6-eJw1FTvnMFHlcH1Smw-Nfh43qKUpdgWL7QpVbLHiOgvfcsk1g3-G0QFBZ-N-xh35L53Cp5_seXionSAGjsNWLqStQaHPXJ9jLAc_JYLds1VO2CJ0tPSyJ0kiC8fiyRP17pJ19hiHonnGUAZlfZGPJZhrBCfAx3NBbejE0ZAUoeIAw1wPQJDCfp93vO5jvn0kUubpHlnAFz0YtLKqUfaiw6PfZDpu_HTpxAMVvyY_4PxzP56lWdnqQh6JhiMuVNehJfnKcAKPu4WboNCVVIBW3Gppg", "There is no public key with such ID: unknownkid")
+		checkInvalidToken(t, s.tm, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVua25vd25raWQifQ.eyJqdGkiOiIwMjgyYjI5Yy01MTczLTQyZDgtODE0NS1iNDVmYTFlMzUzOGIiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTE3MDE1OTUyLCJpc3MiOiJ0ZXN0IiwiYXVkIjoiZmFicmljOC1vbmxpbmUtcGxhdGZvcm0iLCJzdWIiOiIyMzk4NDM5OC04NTVhLTQyZDYtYTdmZS05MzZiYjRlOTJhMGMiLCJ0eXAiOiJCZWFyZXIiLCJzZXNzaW9uX3N0YXRlIjoiZWFkYzA2NmMtMTIzNC00YTU2LTlmMzUtY2U3MDdiNTdhNGU5IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sImFwcHJvdmVkIjp0cnVlLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QiLCJjb21wYW55IjoiIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiIiwiZmFtaWx5X25hbWUiOiIiLCJlbWFpbCI6InRAdGVzdC50In0.ewwDOye1c5mA91YjgMQvk0x4RCXeosKVgag-UeG5lHQASWPv3_cpw0BMahG6-eJw1FTvnMFHlcH1Smw-Nfh43qKUpdgWL7QpVbLHiOgvfcsk1g3-G0QFBZ-N-xh35L53Cp5_seXionSAGjsNWLqStQaHPXJ9jLAc_JYLds1VO2CJ0tPSyJ0kiC8fiyRP17pJ19hiHonnGUAZlfZGPJZhrBCfAx3NBbejE0ZAUoeIAw1wPQJDCfp93vO5jvn0kUubpHlnAFz0YtLKqUfaiw6PfZDpu_HTpxAMVvyY_4PxzP56lWdnqQh6JhiMuVNehJfnKcAKPu4WboNCVVIBW3Gppg", "There is no public key with such ID: unknownkid")
 	})
 
 	s.T().Run("Invalid signature", func(t *testing.T) {
-		checkInvalidToken(s.T(), s.tm, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3Qta2V5In0.eyJqdGkiOiIwMjgyYjI5Yy01MTczLTQyZDgtODE0NS1iNDVmYTFlMzUzOGIiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTE3MDE1OTUyLCJpc3MiOiJ0ZXN0IiwiYXVkIjoiZmFicmljOC1vbmxpbmUtcGxhdGZvcm0iLCJzdWIiOiIyMzk4NDM5OC04NTVhLTQyZDYtYTdmZS05MzZiYjRlOTJhMGMiLCJ0eXAiOiJCZWFyZXIiLCJzZXNzaW9uX3N0YXRlIjoiZWFkYzA2NmMtMTIzNC00YTU2LTlmMzUtY2U3MDdiNTdhNGU5IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sImFwcHJvdmVkIjp0cnVlLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QiLCJjb21wYW55IjoiIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiIiwiZmFtaWx5X25hbWUiOiIiLCJlbWFpbCI6InRAdGVzdC5jb20ifQ.Y66kbPnxdfWyuawsEABDTsPFAylC9UFj934pF7SG-Fwrfqs3iF0gVHAQ56WLwY7E-D4QX_3uUkYuSrjzd4JT1p0bfxt3uu0wzFQlnzB4Uu2ttS287XPkBss4mUlc5uvAj0FRdy1IrQBFnfFpW5s6PWrHqod9PF4R2BTCBO1JqKgRtGzSqFwuWHowW__Sgw3B2NVgplL-6rb762M1OeT0GFWt0QE_uG8k_LPGPTyxDR5AILGfRgz5p-d16SYCAsjbsGSiQh3OGArt3Gzfi3CsKIGsQnhfuVXiorFbUn-nVaDuxRwU7JDzhde5nAj38U7exrkgxhEkybGMe4xZme49vA", "crypto/rsa: verification error")
+		checkInvalidToken(t, s.tm, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3Qta2V5In0.eyJqdGkiOiIwMjgyYjI5Yy01MTczLTQyZDgtODE0NS1iNDVmYTFlMzUzOGIiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTE3MDE1OTUyLCJpc3MiOiJ0ZXN0IiwiYXVkIjoiZmFicmljOC1vbmxpbmUtcGxhdGZvcm0iLCJzdWIiOiIyMzk4NDM5OC04NTVhLTQyZDYtYTdmZS05MzZiYjRlOTJhMGMiLCJ0eXAiOiJCZWFyZXIiLCJzZXNzaW9uX3N0YXRlIjoiZWFkYzA2NmMtMTIzNC00YTU2LTlmMzUtY2U3MDdiNTdhNGU5IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sImFwcHJvdmVkIjp0cnVlLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QiLCJjb21wYW55IjoiIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiIiwiZmFtaWx5X25hbWUiOiIiLCJlbWFpbCI6InRAdGVzdC5jb20ifQ.Y66kbPnxdfWyuawsEABDTsPFAylC9UFj934pF7SG-Fwrfqs3iF0gVHAQ56WLwY7E-D4QX_3uUkYuSrjzd4JT1p0bfxt3uu0wzFQlnzB4Uu2ttS287XPkBss4mUlc5uvAj0FRdy1IrQBFnfFpW5s6PWrHqod9PF4R2BTCBO1JqKgRtGzSqFwuWHowW__Sgw3B2NVgplL-6rb762M1OeT0GFWt0QE_uG8k_LPGPTyxDR5AILGfRgz5p-d16SYCAsjbsGSiQh3OGArt3Gzfi3CsKIGsQnhfuVXiorFbUn-nVaDuxRwU7JDzhde5nAj38U7exrkgxhEkybGMe4xZme49vA", "crypto/rsa: verification error")
 	})
 
 	s.T().Run("Expired", func(t *testing.T) {
-		checkInvalidToken(s.T(), s.tm, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3Qta2V5In0.eyJqdGkiOiIwMjgyYjI5Yy01MTczLTQyZDgtODE0NS1iNDVmYTFlMzUzOGIiLCJleHAiOjExMTk2MDc5NTIsIm5iZiI6MCwiaWF0IjoxMTE3MDE1OTUyLCJpc3MiOiJ0ZXN0IiwiYXVkIjoiZmFicmljOC1vbmxpbmUtcGxhdGZvcm0iLCJzdWIiOiIyMzk4NDM5OC04NTVhLTQyZDYtYTdmZS05MzZiYjRlOTJhMGMiLCJ0eXAiOiJCZWFyZXIiLCJzZXNzaW9uX3N0YXRlIjoiZWFkYzA2NmMtMTIzNC00YTU2LTlmMzUtY2U3MDdiNTdhNGU5IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sImFwcHJvdmVkIjp0cnVlLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QiLCJjb21wYW55IjoiIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiIiwiZmFtaWx5X25hbWUiOiIiLCJlbWFpbCI6InRAdGVzdC50In0.g90TCdckT5YFctQSwQke7jmeGDZQotYiCa8AE_x0o8M8ncgb6m07glGXgcGJXftkzUL-uZn1U9JzixOYaI8B__jtB9BbMqMnrXyz-_gTYHAlj06l-9axVyKV7cpO8IIt_cFVt5lv4pPEcjEMzDLbjxxo6qH9lihry_KL3zESt8hxaosSnY5b8XvN7WCL-5NYTDF_i7QBI5x8XBljQpTJSwLY6-X7TDgAThET8OgWDV3H40UsSSsJUfpdEJZuiDsqoCsEpb0E7AfiYD-y0iZ5ULSxTiNf0EYf26irmy-jyQlWujOSb9kV2utsywZn-zDmHX3W_hS2wRD5eVgePFTBKA", "token is expired")
+		checkInvalidToken(t, s.tm, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3Qta2V5In0.eyJqdGkiOiIwMjgyYjI5Yy01MTczLTQyZDgtODE0NS1iNDVmYTFlMzUzOGIiLCJleHAiOjExMTk2MDc5NTIsIm5iZiI6MCwiaWF0IjoxMTE3MDE1OTUyLCJpc3MiOiJ0ZXN0IiwiYXVkIjoiZmFicmljOC1vbmxpbmUtcGxhdGZvcm0iLCJzdWIiOiIyMzk4NDM5OC04NTVhLTQyZDYtYTdmZS05MzZiYjRlOTJhMGMiLCJ0eXAiOiJCZWFyZXIiLCJzZXNzaW9uX3N0YXRlIjoiZWFkYzA2NmMtMTIzNC00YTU2LTlmMzUtY2U3MDdiNTdhNGU5IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sImFwcHJvdmVkIjp0cnVlLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QiLCJjb21wYW55IjoiIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiIiwiZmFtaWx5X25hbWUiOiIiLCJlbWFpbCI6InRAdGVzdC50In0.g90TCdckT5YFctQSwQke7jmeGDZQotYiCa8AE_x0o8M8ncgb6m07glGXgcGJXftkzUL-uZn1U9JzixOYaI8B__jtB9BbMqMnrXyz-_gTYHAlj06l-9axVyKV7cpO8IIt_cFVt5lv4pPEcjEMzDLbjxxo6qH9lihry_KL3zESt8hxaosSnY5b8XvN7WCL-5NYTDF_i7QBI5x8XBljQpTJSwLY6-X7TDgAThET8OgWDV3H40UsSSsJUfpdEJZuiDsqoCsEpb0E7AfiYD-y0iZ5ULSxTiNf0EYf26irmy-jyQlWujOSb9kV2utsywZn-zDmHX3W_hS2wRD5eVgePFTBKA", "token is expired")
 	})
 
 	s.T().Run("OK", func(t *testing.T) {
-		checkValidToken(s.T(), s.tm, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3Qta2V5In0.eyJqdGkiOiIwMjgyYjI5Yy01MTczLTQyZDgtODE0NS1iNDVmYTFlMzUzOGIiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTE3MDE1OTUyLCJpc3MiOiJ0ZXN0IiwiYXVkIjoiZmFicmljOC1vbmxpbmUtcGxhdGZvcm0iLCJzdWIiOiIyMzk4NDM5OC04NTVhLTQyZDYtYTdmZS05MzZiYjRlOTJhMGMiLCJ0eXAiOiJCZWFyZXIiLCJzZXNzaW9uX3N0YXRlIjoiZWFkYzA2NmMtMTIzNC00YTU2LTlmMzUtY2U3MDdiNTdhNGU5IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sImFwcHJvdmVkIjp0cnVlLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QiLCJjb21wYW55IjoiIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiIiwiZmFtaWx5X25hbWUiOiIiLCJlbWFpbCI6InRAdGVzdC50In0.gyoMIWuXnIMMRHewef-__Wkd66qjqSSJxusWcFVtNWaYOXWu7iFV9DhtPVGsbTllXG_lDozPV9BaDmmYRotnn3ZBg7khFDykv9WnoYAjE9vW1d8szNjuoG3tfgQI4Dr9jqopSLndldxq97LGqpxqZFbIDlYd8vN47kv4EePOZDsII6egkTraCMc35eMMilJ4Udd6CMqyV_zaYiGhgAGgeL2ovMFhg_jnc7WhePv7FZkUmtfhCuLUL2TSXS6CyWZYoUDEIcfca6cMzuKOzJoONkDJShNo4u_cQ53duXX_bizdwYNlzBHfIPhSR1LDgV9BXoM6YQnw3It8ReCfF8BEMQ")
+		checkValidToken(t, s.tm, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3Qta2V5In0.eyJqdGkiOiIwMjgyYjI5Yy01MTczLTQyZDgtODE0NS1iNDVmYTFlMzUzOGIiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTE3MDE1OTUyLCJpc3MiOiJ0ZXN0IiwiYXVkIjoiZmFicmljOC1vbmxpbmUtcGxhdGZvcm0iLCJzdWIiOiIyMzk4NDM5OC04NTVhLTQyZDYtYTdmZS05MzZiYjRlOTJhMGMiLCJ0eXAiOiJCZWFyZXIiLCJzZXNzaW9uX3N0YXRlIjoiZWFkYzA2NmMtMTIzNC00YTU2LTlmMzUtY2U3MDdiNTdhNGU5IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sImFwcHJvdmVkIjp0cnVlLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QiLCJjb21wYW55IjoiIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiIiwiZmFtaWx5X25hbWUiOiIiLCJlbWFpbCI6InRAdGVzdC50In0.gyoMIWuXnIMMRHewef-__Wkd66qjqSSJxusWcFVtNWaYOXWu7iFV9DhtPVGsbTllXG_lDozPV9BaDmmYRotnn3ZBg7khFDykv9WnoYAjE9vW1d8szNjuoG3tfgQI4Dr9jqopSLndldxq97LGqpxqZFbIDlYd8vN47kv4EePOZDsII6egkTraCMc35eMMilJ4Udd6CMqyV_zaYiGhgAGgeL2ovMFhg_jnc7WhePv7FZkUmtfhCuLUL2TSXS6CyWZYoUDEIcfca6cMzuKOzJoONkDJShNo4u_cQ53duXX_bizdwYNlzBHfIPhSR1LDgV9BXoM6YQnw3It8ReCfF8BEMQ")
 	})
 
 }
@@ -285,7 +285,7 @@ func (s *TokenManagerTestSuite) TestCheckClaimsFails() {
 		}
 		claimsNoEmail.Subject = uuid.NewV4().String()
 		// then
-		assert.NotNil(s.T(), token.CheckClaims(claimsNoEmail))
+		assert.NotNil(t, token.CheckClaims(claimsNoEmail))
 	})
 
 	s.T().Run("no username", func(t *testing.T) {
@@ -295,7 +295,7 @@ func (s *TokenManagerTestSuite) TestCheckClaimsFails() {
 		}
 		claimsNoUsername.Subject = uuid.NewV4().String()
 		// then
-		assert.NotNil(s.T(), token.CheckClaims(claimsNoUsername))
+		assert.NotNil(t, token.CheckClaims(claimsNoUsername))
 	})
 
 	s.T().Run("no subject", func(t *testing.T) {
@@ -305,7 +305,7 @@ func (s *TokenManagerTestSuite) TestCheckClaimsFails() {
 			Username: "testuser",
 		}
 		// then
-		assert.NotNil(s.T(), token.CheckClaims(claimsNoSubject))
+		assert.NotNil(t, token.CheckClaims(claimsNoSubject))
 	})
 }
 
@@ -319,8 +319,8 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 		// when
 		foundId, err := s.tm.Locate(ctx)
 		// then
-		require.NoError(s.T(), err)
-		assert.Equal(s.T(), id, foundId, "ID in created context not equal")
+		require.NoError(t, err)
+		assert.Equal(t, id, foundId, "ID in created context not equal")
 	})
 
 	s.T().Run("missing token in context", func(t *testing.T) {
@@ -329,7 +329,7 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 		// when
 		_, err := s.tm.Locate(ctx)
 		// then
-		require.Error(s.T(), err)
+		require.Error(t, err)
 	})
 
 	s.T().Run("missing UUID in token", func(t *testing.T) {
@@ -339,7 +339,7 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 		// when
 		_, err := s.tm.Locate(ctx)
 		// then
-		require.Error(s.T(), err)
+		require.Error(t, err)
 	})
 
 	s.T().Run("invalid UUID in token", func(t *testing.T) {
@@ -350,7 +350,7 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 		// when
 		_, err := s.tm.Locate(ctx)
 		// then
-		require.Error(s.T(), err)
+		require.Error(t, err)
 
 	})
 }
