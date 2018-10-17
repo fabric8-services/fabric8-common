@@ -4,107 +4,116 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"net/http"
 
-	"github.com/dgrijalva/jwt-go"
-	authjwk "github.com/fabric8-services/fabric8-auth/token/jwk"
-	"github.com/fabric8-services/fabric8-common/configuration"
+	errs "github.com/fabric8-services/fabric8-common/errors"
 	"github.com/fabric8-services/fabric8-common/log"
-	"github.com/fabric8-services/fabric8-common/login/tokencontext"
-	"github.com/satori/go.uuid"
+	"github.com/fabric8-services/fabric8-common/token/jwk"
+	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
+	"github.com/satori/go.uuid"
 )
 
-// tokenManagerConfiguration represents configuration needed to construct a token manager
-type tokenManagerConfiguration interface {
+const (
+	// Service Account Names
+
+	Auth         = "fabric8-auth"
+	WIT          = "fabric8-wit"
+	OsoProxy     = "fabric8-oso-proxy"
+	Tenant       = "fabric8-tenant"
+	Notification = "fabric8-notification"
+	JenkinsIdler = "fabric8-jenkins-idler"
+	JenkinsProxy = "fabric8-jenkins-proxy"
+
+	devModeKeyID = "test-key"
+)
+
+// ManagerConfiguration represents configuration needed to construct a token manager
+type ManagerConfiguration interface {
 	GetAuthServiceURL() string
-	GetKeysTokenPath() string
-	DeveloperModeEnabled() bool
+	GetAuthKeysPath() string
+	GetDevModePrivateKey() []byte
 }
 
 // TokenClaims represents access token claims
 type TokenClaims struct {
-	Name          string                `json:"name"`
-	Username      string                `json:"preferred_username"`
-	GivenName     string                `json:"given_name"`
-	FamilyName    string                `json:"family_name"`
-	Email         string                `json:"email"`
-	Company       string                `json:"company"`
-	SessionState  string                `json:"session_state"`
-	Authorization *AuthorizationPayload `json:"authorization"`
+	Name          string `json:"name"`
+	Username      string `json:"preferred_username"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Company       string `json:"company"`
 	jwt.StandardClaims
 }
 
-// AuthorizationPayload represents an authz payload in the rpt token
-type AuthorizationPayload struct {
-	Permissions []Permissions `json:"permissions"`
-}
-
-// Permissions represents a "permissions" in the AuthorizationPayload
-type Permissions struct {
-	ResourceSetName *string `json:"resource_set_name"`
-	ResourceSetID   *string `json:"resource_set_id"`
-}
-
-type PublicKey struct {
-	KeyID string
-	Key   *rsa.PublicKey
+// Parser parses a token and exposes the public keys for the Goa JWT middleware.
+type Parser interface {
+	Parse(ctx context.Context, tokenString string) (*jwt.Token, error)
+	PublicKeys() []*rsa.PublicKey
 }
 
 // Manager generate and find auth token information
 type Manager interface {
+	Parser
 	Locate(ctx context.Context) (uuid.UUID, error)
 	ParseToken(ctx context.Context, tokenString string) (*TokenClaims, error)
-	PublicKey(kid string) *rsa.PublicKey
-	PublicKeys() []*rsa.PublicKey
-	IsServiceAccount(ctx context.Context, serviceName string) bool
+	ParseTokenWithMapClaims(ctx context.Context, tokenString string) (jwt.MapClaims, error)
+	PublicKey(keyID string) *rsa.PublicKey
+	AddLoginRequiredHeader(rw http.ResponseWriter)
 }
 
 type tokenManager struct {
 	publicKeysMap map[string]*rsa.PublicKey
-	publicKeys    []*PublicKey
+	publicKeys    []*jwk.PublicKey
+	config        ManagerConfiguration
 }
 
 // NewManager returns a new token Manager for handling tokens
-func NewManager(config tokenManagerConfiguration) (Manager, error) {
+func NewManager(config ManagerConfiguration, options ...httpsupport.HTTPClientOption) (Manager, error) {
+
 	// Load public keys from Auth service and add them to the manager
 	tm := &tokenManager{
 		publicKeysMap: map[string]*rsa.PublicKey{},
 	}
+	tm.config = config
 
-	keysEndpoint := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), config.GetKeysTokenPath())
-	remoteKeys, err := authjwk.FetchKeys(keysEndpoint)
+	keysEndpoint := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), config.GetAuthKeysPath())
+	remoteKeys, err := jwk.FetchKeys(keysEndpoint, options...)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":      err,
 			"keys_url": keysEndpoint,
-		}, "unable to load public keys from remote service")
-		return nil, errors.New("unable to load public keys from remote service")
+		}, "unable to load public keys from auth service")
+		return nil, errors.New("unable to load public keys from auth service")
 	}
 	for _, remoteKey := range remoteKeys {
 		tm.publicKeysMap[remoteKey.KeyID] = remoteKey.Key
-		tm.publicKeys = append(tm.publicKeys, &PublicKey{KeyID: remoteKey.KeyID, Key: remoteKey.Key})
+		tm.publicKeys = append(tm.publicKeys, &jwk.PublicKey{KeyID: remoteKey.KeyID, Key: remoteKey.Key})
 		log.Info(nil, map[string]interface{}{
 			"kid": remoteKey.KeyID,
 		}, "Public key added")
 	}
 
-	if config.DeveloperModeEnabled() {
-		// Add the public key which will be used to verify tokens generated in dev mode
-		rsaKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(configuration.DevModeRsaPrivateKey))
+	devModePrivateKey := config.GetDevModePrivateKey()
+	if devModePrivateKey != nil {
+		log.Info(nil, map[string]interface{}{}, "adding dev-mode private key, too...")
+		// Add the public key which will be used to verify tokens generated in Dev Mode
+		rsaKey, err := jwt.ParseRSAPrivateKeyFromPEM(devModePrivateKey)
 		if err != nil {
 			return nil, err
 		}
 		tm.publicKeysMap["test-key"] = &rsaKey.PublicKey
-		tm.publicKeys = append(tm.publicKeys, &PublicKey{KeyID: "test-key", Key: &rsaKey.PublicKey})
+		tm.publicKeys = append(tm.publicKeys, &jwk.PublicKey{KeyID: "test-key", Key: &rsaKey.PublicKey})
 		log.Info(nil, map[string]interface{}{
-			"kid": "test-key",
+			"kid": devModeKeyID,
 		}, "Public key added")
 	}
-
 	return tm, nil
 }
 
@@ -112,42 +121,13 @@ func NewManager(config tokenManagerConfiguration) (Manager, error) {
 func NewManagerWithPublicKey(id string, key *rsa.PublicKey) Manager {
 	return &tokenManager{
 		publicKeysMap: map[string]*rsa.PublicKey{id: key},
-		publicKeys:    []*PublicKey{{KeyID: id, Key: key}},
+		publicKeys:    []*jwk.PublicKey{{KeyID: id, Key: key}},
 	}
-}
-
-func (mgm *tokenManager) IsServiceAccount(ctx context.Context, serviceName string) bool {
-	token := goajwt.ContextJWT(ctx)
-	if token == nil {
-		return false
-	}
-	accountName := token.Claims.(jwt.MapClaims)["service_accountname"]
-	if accountName == nil {
-		return false
-	}
-	accountNameTyped, isString := accountName.(string)
-
-	// https://github.com/fabric8-services/fabric8-auth/commit/8d7f5a3646974ae8820893d75c29f3f5e9b1ff66#diff-6b1a7621961d1f6fe7463db59c5afef5R379
-	return isString && (accountNameTyped == serviceName)
 }
 
 // ParseToken parses token claims
 func (mgm *tokenManager) ParseToken(ctx context.Context, tokenString string) (*TokenClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		kid, ok := token.Header["kid"]
-		if !ok {
-			log.Error(ctx, map[string]interface{}{}, "There is no 'kid' header in the token")
-			return nil, errors.New("there is no 'kid' header in the token")
-		}
-		key := mgm.PublicKey(fmt.Sprintf("%s", kid))
-		if key == nil {
-			log.Error(ctx, map[string]interface{}{
-				"kid": kid,
-			}, "There is no public key with such ID")
-			return nil, errors.Errorf("there is no public key with such ID: %s", kid)
-		}
-		return key, nil
-	})
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, mgm.keyFunction(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +136,37 @@ func (mgm *tokenManager) ParseToken(ctx context.Context, tokenString string) (*T
 		return claims, nil
 	}
 	return nil, errors.WithStack(errors.New("token is not valid"))
+}
+
+// ParseTokenWithMapClaims parses token claims
+func (mgm *tokenManager) ParseTokenWithMapClaims(ctx context.Context, tokenString string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenString, mgm.keyFunction(ctx))
+	if err != nil {
+		return nil, err
+	}
+	claims := token.Claims.(jwt.MapClaims)
+	if token.Valid {
+		return claims, nil
+	}
+	return nil, errors.WithStack(errors.New("token is not valid"))
+}
+
+func (mgm *tokenManager) keyFunction(ctx context.Context) jwt.Keyfunc {
+	return func(token *jwt.Token) (interface{}, error) {
+		kid := token.Header["kid"]
+		if kid == nil {
+			log.Error(ctx, map[string]interface{}{}, "There is no 'kid' header in the token")
+			return nil, errors.New("There is no 'kid' header in the token")
+		}
+		key := mgm.PublicKey(fmt.Sprintf("%s", kid))
+		if key == nil {
+			log.Error(ctx, map[string]interface{}{
+				"kid": kid,
+			}, "There is no public key with such ID")
+			return nil, errors.New(fmt.Sprintf("There is no public key with such ID: %s", kid))
+		}
+		return key, nil
+	}
 }
 
 func (mgm *tokenManager) Locate(ctx context.Context) (uuid.UUID, error) {
@@ -175,8 +186,8 @@ func (mgm *tokenManager) Locate(ctx context.Context) (uuid.UUID, error) {
 }
 
 // PublicKey returns the public key by the ID
-func (mgm *tokenManager) PublicKey(kid string) *rsa.PublicKey {
-	return mgm.publicKeysMap[kid]
+func (mgm *tokenManager) PublicKey(keyID string) *rsa.PublicKey {
+	return mgm.publicKeysMap[keyID]
 }
 
 // PublicKeys returns all the public keys
@@ -186,6 +197,60 @@ func (mgm *tokenManager) PublicKeys() []*rsa.PublicKey {
 		keys = append(keys, key.Key)
 	}
 	return keys
+}
+
+func (mgm *tokenManager) Parse(ctx context.Context, tokenString string) (*jwt.Token, error) {
+	keyFunc := mgm.keyFunction(ctx)
+	jwtToken, err := jwt.Parse(tokenString, keyFunc)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to parse token")
+		return nil, errs.NewUnauthorizedError(err.Error())
+	}
+	return jwtToken, nil
+}
+
+// AddLoginRequiredHeader adds "WWW-Authenticate: LOGIN" header to the response
+func (mgm *tokenManager) AddLoginRequiredHeader(rw http.ResponseWriter) {
+	rw.Header().Add("Access-Control-Expose-Headers", "WWW-Authenticate")
+	loginURL := mgm.config.GetAuthServiceURL() + "/api/login"
+	rw.Header().Set("WWW-Authenticate", fmt.Sprintf("LOGIN url=%s, description=\"re-login is required\"", loginURL))
+}
+
+// IsSpecificServiceAccount checks if the request is done by a service account listed in the names param
+// based on the JWT Token provided in context
+func IsSpecificServiceAccount(ctx context.Context, names ...string) bool {
+	accountName, ok := extractServiceAccountName(ctx)
+	if !ok {
+		return false
+	}
+	for _, name := range names {
+		if accountName == name {
+			return true
+		}
+	}
+	return false
+}
+
+// IsServiceAccount checks if the request is done by a
+// Service account based on the JWT Token provided in context
+func IsServiceAccount(ctx context.Context) bool {
+	_, ok := extractServiceAccountName(ctx)
+	return ok
+}
+
+func extractServiceAccountName(ctx context.Context) (string, bool) {
+	token := goajwt.ContextJWT(ctx)
+	if token == nil {
+		return "", false
+	}
+	accountName := token.Claims.(jwt.MapClaims)["service_accountname"]
+	if accountName == nil {
+		return "", false
+	}
+	accountNameTyped, isString := accountName.(string)
+	return accountNameTyped, isString
 }
 
 // CheckClaims checks if all the required claims are present in the access token
@@ -206,22 +271,20 @@ func CheckClaims(claims *TokenClaims) error {
 	return nil
 }
 
-// ReadManagerFromContext extracts the token manager from the context
-func ReadManagerFromContext(ctx context.Context) (*Manager, error) {
+// ReadManagerFromContext extracts the token manager
+func ReadManagerFromContext(ctx context.Context) (*tokenManager, error) {
 	tm := tokencontext.ReadTokenManagerFromContext(ctx)
 	if tm == nil {
 		log.Error(ctx, map[string]interface{}{
 			"token": tm,
 		}, "missing token manager")
 
-		return nil, errors.New("Missing token manager")
+		return nil, errors.New("missing token manager")
 	}
-	tokenManager := tm.(Manager)
-	return &tokenManager, nil
+	return tm.(*tokenManager), nil
 }
 
 // InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.
-// Use this in conjunction with token.ReadManagerFromContext()
 func InjectTokenManager(tokenManager Manager) goa.Middleware {
 	return func(h goa.Handler) goa.Handler {
 		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {

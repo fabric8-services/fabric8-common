@@ -66,17 +66,14 @@
   version = "v5.0.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:b15f541cdc52e84ead1d67294d71e43f04be1273298d6e93828ea8844c55523c"
-  name = "github.com/fabric8-services/fabric8-auth"
+  digest = "1:cd503d36a578b331bf585e3bb97dac8333188a74f773406ebb48c7bff9b270ed"
+  name = "github.com/dnaeon/go-vcr"
   packages = [
-    "errors",
-    "log",
-    "rest",
-    "token/jwk",
+    "cassette",
+    "recorder",
   ]
   pruneopts = "UT"
-  revision = "81bf87a6bdae7528a88041f0493555a9fd45a847"
+  revision = "5637cf3d8a31b20882d79bd0e53a186d3821b155"
 
 [[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
@@ -129,6 +126,25 @@
   pruneopts = "UT"
   revision = "5646a430cdeb66983d5ace3384e0a667c185abc7"
   version = "v1.3.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:978b51b5358a813de8537985afd40ad05ef9868f14146f18f30e4cb2eceb8a37"
+  name = "github.com/gojuno/generator"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "487ec858da35ab9b34dea233bb8d91c048645add"
+
+[[projects]]
+  branch = "master"
+  digest = "1:46f861cbb31f959241ff349711cbf1fc8eb758c00dad688c22e9016d88d59b35"
+  name = "github.com/gojuno/minimock"
+  packages = [
+    ".",
+    "cmd/minimock",
+  ]
+  pruneopts = "UT"
+  revision = "a5502dd2746ee6fc3fd58ad83d701d25e14d68d1"
 
 [[projects]]
   digest = "1:4ee452f8994700dcab9e816aef1cb9eb2317218734c6ccf5135746e6c19f3dce"
@@ -469,26 +485,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3ed23908fb1e29360ae62d44a60d6fb52c1a0670cde3aad955d263dbf4c25098"
+  digest = "1:7427036b6d926b3d1fa0773771820735b35554a98296f1074df440ee30a97296"
   name = "golang.org/x/net"
-  packages = [
-    "context",
-    "context/ctxhttp",
-    "websocket",
-  ]
+  packages = ["websocket"]
   pruneopts = "UT"
   revision = "ed29d75add3d7c4bf7ca65aac0c6df3d1420216f"
-
-[[projects]]
-  branch = "master"
-  digest = "1:af19f6e6c369bf51ef226e989034cd88a45083173c02ac4d7ab74c9a90d356b7"
-  name = "golang.org/x/oauth2"
-  packages = [
-    ".",
-    "internal",
-  ]
-  pruneopts = "UT"
-  revision = "ef147856a6ddbb60760db74283d2424e98c87bff"
 
 [[projects]]
   branch = "master"
@@ -515,33 +516,21 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:fbf6010d85fb1b455f7b0b552571237756e22dee30eb426635b83415ac64bdd8"
+  digest = "1:d4450adb4e98e8ef3ec6abb6be9d28019e8f42b01e378b5834acaef9a2fb18f9"
   name = "golang.org/x/tools"
   packages = [
     "cover",
     "go/ast/astutil",
+    "go/buildutil",
     "go/gcexportdata",
     "go/internal/gcimporter",
+    "go/loader",
     "go/types/typeutil",
+    "imports",
+    "internal/fastwalk",
   ]
   pruneopts = "UT"
   revision = "ffe88906718454e356e61776b54256e873fc133b"
-
-[[projects]]
-  digest = "1:328b5e4f197d928c444a51a75385f4b978915c0e75521f0ad6a3db976c97a7d3"
-  name = "google.golang.org/appengine"
-  packages = [
-    "internal",
-    "internal/base",
-    "internal/datastore",
-    "internal/log",
-    "internal/remote_api",
-    "internal/urlfetch",
-    "urlfetch",
-  ]
-  pruneopts = "UT"
-  revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
-  version = "v1.1.0"
 
 [[projects]]
   digest = "1:0f287957ae25f63e6a9fa361923581db8551e38d6b5e6c4f27e84607b3430889"
@@ -569,7 +558,8 @@
   input-imports = [
     "github.com/davecgh/go-spew/spew",
     "github.com/dgrijalva/jwt-go",
-    "github.com/fabric8-services/fabric8-auth/token/jwk",
+    "github.com/dnaeon/go-vcr/cassette",
+    "github.com/dnaeon/go-vcr/recorder",
     "github.com/fzipp/gocyclo",
     "github.com/getsentry/raven-go",
     "github.com/goadesign/goa",
@@ -588,6 +578,8 @@
     "github.com/goadesign/goa/middleware",
     "github.com/goadesign/goa/middleware/security/jwt",
     "github.com/goadesign/goa/uuid",
+    "github.com/gojuno/minimock",
+    "github.com/gojuno/minimock/cmd/minimock",
     "github.com/golang/lint/golint",
     "github.com/jinzhu/gorm",
     "github.com/lib/pq",
@@ -601,7 +593,7 @@
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "github.com/wadey/gocovmerge",
-    "golang.org/x/oauth2",
+    "gopkg.in/square/go-jose.v2",
     "gopkg.in/yaml.v2",
   ]
   solver-name = "gps-cdcl"

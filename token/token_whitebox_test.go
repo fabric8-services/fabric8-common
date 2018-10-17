@@ -3,32 +3,50 @@ package token
 import (
 	"testing"
 
-	"fmt"
-
-	config "github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/fabric8-services/fabric8-common/resource"
+
+	testconfiguration "github.com/fabric8-services/fabric8-common/test/configuration"
+	testkeys "github.com/fabric8-services/fabric8-common/test/keys"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestRemoteTokensLoaded(t *testing.T) {
-	t.Skipf("We're skipping this test on purpose until we can properly run remote tests on CI")
-	resource.Require(t, resource.Remote)
-	c, err := config.Get()
-	if err != nil {
-		panic(fmt.Errorf("failed to setup the configuration: %s", err.Error()))
+func TestKeyLoaded(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	// given
+	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
+	config.GetAuthServiceURLFunc = func() string {
+		return "https://auth.prod-preview.openshift.io"
 	}
-	m, err := NewManager(c)
-	require.NoError(t, err)
-	require.NotNil(t, m)
-	tm, ok := m.(*tokenManager)
-	require.True(t, ok)
 
-	require.NotEmpty(t, tm.PublicKeys())
-	require.Equal(t, len(tm.publicKeys), len(m.PublicKeys()))
-	require.Equal(t, len(tm.publicKeys), len(tm.publicKeysMap))
-	for i, k := range tm.publicKeys {
-		require.NotEqual(t, "", k.KeyID)
-		require.NotNil(t, m.PublicKey(k.KeyID))
-		require.Equal(t, m.PublicKeys()[i], k.Key)
+	config.GetAuthKeysPathFunc = func() string {
+		return "/api/token/keys"
 	}
+
+	t.Run("dev mode enabled", func(t *testing.T) {
+		// given
+		config.GetDevModePrivateKeyFunc = func() []byte {
+			return []byte(testkeys.DevModePrivateKey)
+		}
+		tm, err := NewManager(config)
+		require.NoError(t, err)
+		// when
+		key := tm.PublicKey(devModeKeyID)
+		// then
+		assert.NotNil(t, key)
+	})
+
+	t.Run("dev mode not enabled", func(t *testing.T) {
+		// given
+		config.GetDevModePrivateKeyFunc = func() []byte {
+			return nil
+		}
+		tm, err := NewManager(config)
+		require.NoError(t, err)
+		// when
+		key := tm.PublicKey(devModeKeyID)
+		// then
+		assert.Nil(t, key)
+	})
+
 }

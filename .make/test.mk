@@ -373,6 +373,15 @@ $(COV_PATH_INTEGRATION): $(SOURCES) $(GOCOVMERGE_BIN)
 	$(call check-test-results,$(ERRORS_FILE))
 
 #-------------------------------------------------------------------------------
+# Generate mock structs for testing
+#-------------------------------------------------------------------------------
+.PHONY: generate-mocks
+generate-mocks: deps $(MINIMOCK_BIN) ## Generate Minimock sources. Only necessary after clean or if changes occurred in interfaces.
+	@echo "Generating mocks..."
+	@-mkdir -p test/generated/token
+	@$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-common/token.ManagerConfiguration -o ./test/generated/token/ -s ".go"
+
+#-------------------------------------------------------------------------------
 # Additional tools to build
 #-------------------------------------------------------------------------------
 
@@ -381,6 +390,10 @@ $(GOCOV_BIN): prebuild-check
 
 $(GOCOVMERGE_BIN): prebuild-check
 	@cd $(VENDOR_DIR)/github.com/wadey/gocovmerge && go build
+
+$(MINIMOCK_BIN):
+	@echo "building the minimock binary..."
+	@cd $(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock && go build -v minimock.go
 
 #-------------------------------------------------------------------------------
 # Clean targets

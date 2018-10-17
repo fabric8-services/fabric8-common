@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"bytes"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 
 	"github.com/fabric8-services/fabric8-common/resource"
 
@@ -44,7 +45,7 @@ func TestProxy(t *testing.T) {
 
 	assert.Equal(t, 201, rw.Code)
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
-	body, err := readBody(rw.Result().Body)
+	body, err := httpsupport.ReadBody(rw.Result().Body)
 	require.NoError(t, err)
 	assert.Equal(t, veryLongBody, body)
 
@@ -63,7 +64,7 @@ func TestProxy(t *testing.T) {
 
 	assert.Equal(t, 201, rw.Code)
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
-	body, err = readBody(rw.Result().Body)
+	body, err = httpsupport.ReadBody(rw.Result().Body)
 	require.NoError(t, err)
 	assert.Equal(t, veryLongBody, body)
 }
@@ -172,10 +173,4 @@ func generateLongBody() string {
 		body = body + uuid.NewV4().String()
 	}
 	return body
-}
-
-func readBody(body io.ReadCloser) (string, error) {
-	buf := new(bytes.Buffer)
-	_, err := buf.ReadFrom(body)
-	return buf.String(), err
 }

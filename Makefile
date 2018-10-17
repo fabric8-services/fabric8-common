@@ -151,6 +151,9 @@ build: deps generate
 	@echo "building all packages..."
 	go build ./...
 
+.PHONY: generate
+generate: generate-mocks
+
 .PHONY: import
 ## import a pkg or a file from another repository, along with the commit history
 # credit: http://www.pixelite.co.nz/article/extracting-file-folder-from-git-repository-with-full-git-history/

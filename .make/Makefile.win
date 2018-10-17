@@ -15,3 +15,4 @@ DEP_BIN_NAME := dep.exe
 CHECK_GOPATH_BIN := $(INSTALL_PREFIX)/check_gopath.exe
 DOCKER_BIN_NAME=docker.exe
 DOCKER_COMPOSE_BIN_NAME=docker-compose.exe
+MINIMOCK_BIN=$(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock/minimock.exe
