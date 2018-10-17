@@ -19,10 +19,6 @@ func TestKeyLoaded(t *testing.T) {
 		return "https://auth.prod-preview.openshift.io"
 	}
 
-	config.GetAuthKeysPathFunc = func() string {
-		return "/api/token/keys"
-	}
-
 	t.Run("dev mode enabled", func(t *testing.T) {
 		// given
 		config.GetDevModePrivateKeyFunc = func() []byte {
