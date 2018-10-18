@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 
-	"github.com/fabric8-services/fabric8-common/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-common/log"
 	"github.com/fabric8-services/fabric8-common/resource"
 
@@ -55,12 +54,12 @@ func (s *DBTestSuite) SetupSuite() {
 	}
 	// configures the log mode for the SQL queries (by default, disabled)
 	s.DB.LogMode(s.config.IsDBLogsEnabled())
-	s.CleanSuite = cleaner.DeleteCreatedEntities(s.DB)
+	s.CleanSuite = DeleteCreatedEntities(s.DB)
 }
 
 // SetupTest implements suite.SetupTest
 func (s *DBTestSuite) SetupTest() {
-	s.CleanTest = cleaner.DeleteCreatedEntities(s.DB)
+	s.CleanTest = DeleteCreatedEntities(s.DB)
 }
 
 // TearDownTest implements suite.TearDownTest
