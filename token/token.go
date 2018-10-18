@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"net/http"
 
 	errs "github.com/fabric8-services/fabric8-common/errors"
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/log"
 	"github.com/fabric8-services/fabric8-common/token/jwk"
 	"github.com/fabric8-services/fabric8-common/token/tokencontext"
@@ -36,7 +36,6 @@ const (
 // ManagerConfiguration represents configuration needed to construct a token manager
 type ManagerConfiguration interface {
 	GetAuthServiceURL() string
-	GetAuthKeysPath() string
 	GetDevModePrivateKey() []byte
 }
 
@@ -83,7 +82,9 @@ func NewManager(config ManagerConfiguration, options ...httpsupport.HTTPClientOp
 	}
 	tm.config = config
 
-	keysEndpoint := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), config.GetAuthKeysPath())
+	authURL := httpsupport.AddTrailingSlashToURL(config.GetAuthServiceURL())
+	// TODO when we have a separate repo for Auth client we should use it to get the key path instead of hardcoding "api/token/keys"
+	keysEndpoint := fmt.Sprintf("%s%s", authURL, "api/token/keys")
 	remoteKeys, err := jwk.FetchKeys(keysEndpoint, options...)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
