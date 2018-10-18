@@ -140,13 +140,14 @@ func ContextWithRequest(ctx context.Context) context.Context {
 	return goa.NewContext(goa.WithAction(ctx, "Test"), rw, req, url.Values{})
 }
 
-func ContextWithTokenAndRequestID() (context.Context, string, string) {
-	ctx, ctxToken := EmbedTokenInContext(uuid.NewV4().String(), uuid.NewV4().String())
+func ContextWithTokenAndRequestID() (context.Context, string, string, string) {
+	identityID := uuid.NewV4().String()
+	ctx, ctxToken := EmbedTokenInContext(identityID, uuid.NewV4().String())
 	ctx = tokencontext.ContextWithTokenManager(ctx, TokenManager)
 	reqID := uuid.NewV4().String()
 	ctx = client.SetContextRequestID(ctx, reqID)
 
-	return ctx, ctxToken, reqID
+	return ctx, identityID, ctxToken, reqID
 }
 
 func ContextWithTokenManager() context.Context {
