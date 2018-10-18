@@ -3,10 +3,11 @@ package token
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/configuration"
+
 	"github.com/fabric8-services/fabric8-common/resource"
 
-	testconfiguration "github.com/fabric8-services/fabric8-common/test/configuration"
-	testkeys "github.com/fabric8-services/fabric8-common/test/keys"
+	testtokenconfig "github.com/fabric8-services/fabric8-common/test/token/configuration"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,7 +15,7 @@ import (
 func TestKeyLoaded(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
-	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
+	config := testtokenconfig.NewManagerConfigurationMock(t)
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth.prod-preview.openshift.io"
 	}
@@ -26,7 +27,7 @@ func TestKeyLoaded(t *testing.T) {
 	t.Run("dev mode enabled", func(t *testing.T) {
 		// given
 		config.GetDevModePrivateKeyFunc = func() []byte {
-			return []byte(testkeys.DevModePrivateKey)
+			return []byte(configuration.DevModeRsaPrivateKey)
 		}
 		tm, err := NewManager(config)
 		require.NoError(t, err)

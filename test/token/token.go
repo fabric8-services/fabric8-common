@@ -19,14 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	TokenManager token.Manager
-)
-
-func init() {
-	TokenManager = NewManager()
-}
-
 // GenerateTokenObject generates a JWT token and signs it using the given private key
 func GenerateTokenObject(identityID string, identityUsername string, privateKey *rsa.PrivateKey) (*jwt.Token, error) {
 	token := jwt.New(jwt.SigningMethodRS256)
@@ -68,53 +60,53 @@ func GenerateToken(identityID string, identityUsername string, privateKey *rsa.P
 }
 
 // NewManager returns a new token Manager for handling tokens
-func NewManager() token.Manager {
-	return token.NewManagerWithPublicKey("test-key", &PrivateKey().PublicKey)
+func NewManager(config token.ManagerConfiguration) token.Manager {
+	return token.NewManagerWithPublicKey("test-key", &PrivateKey().PublicKey, config)
 }
 
 // EmbedTokenInContext generates a token and embed it into the context
-func EmbedTokenInContext(t *testing.T, sub, username string) (context.Context, string, error) {
+func EmbedTokenInContext(t *testing.T, tm token.Manager, sub, username string) (context.Context, string, error) {
 	// Generate Token with an identity that doesn't exist in the database
 	tokenString, err := GenerateToken(sub, username, PrivateKey())
 	if err != nil {
 		return nil, "", err
 	}
 
-	extracted, err := parse(t, tokenString)
+	extracted, err := parse(t, tm, tokenString)
 	if err != nil {
 		return nil, "", err
 	}
 
 	// Embed Token in the context
 	ctx := jwtgoa.WithJWT(context.Background(), extracted)
-	ctx = tokencontext.ContextWithTokenManager(ctx, TokenManager)
+	ctx = tokencontext.ContextWithTokenManager(ctx, tm)
 	return ctx, tokenString, nil
 }
 
-func parse(t *testing.T, tokenString string) (*jwt.Token, error) {
-	keyFunc := keyFunction()
+func parse(t *testing.T, tm token.Manager, tokenString string) (*jwt.Token, error) {
+	keyFunc := keyFunction(tm)
 	jwtToken, err := jwt.Parse(tokenString, keyFunc)
 	require.NoError(t, err)
 	return jwtToken, nil
 }
 
-func keyFunction() jwt.Keyfunc {
+func keyFunction(tm token.Manager) jwt.Keyfunc {
 	return func(token *jwt.Token) (interface{}, error) {
 		kid := token.Header["kid"]
 		if kid == nil {
 			return nil, errors.New("there is no 'kid' header in the token")
 		}
-		key := TokenManager.PublicKey(fmt.Sprintf("%s", kid))
+		key := tm.PublicKey(fmt.Sprintf("%s", kid))
 		if key == nil {
-			return nil, errors.New(fmt.Sprintf("there is no public key with such ID: %s", kid))
+			return nil, errors.Errorf("there is no public key with such ID: %s", kid)
 		}
 		return key, nil
 	}
 }
 
-func ContextWithTokenAndRequestID(t *testing.T) (context.Context, uuid.UUID, string, string) {
+func ContextWithTokenAndRequestID(t *testing.T, tm token.Manager) (context.Context, uuid.UUID, string, string) {
 	identityID := uuid.NewV4()
-	ctx, ctxToken, err := EmbedTokenInContext(t, identityID.String(), uuid.NewV4().String())
+	ctx, ctxToken, err := EmbedTokenInContext(t, tm, identityID.String(), uuid.NewV4().String())
 	require.NoError(t, err)
 
 	reqID := uuid.NewV4().String()

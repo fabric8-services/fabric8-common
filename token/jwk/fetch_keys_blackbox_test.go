@@ -7,9 +7,8 @@ import (
 
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/resource"
-	testconfiguration "github.com/fabric8-services/fabric8-common/test/configuration"
 	"github.com/fabric8-services/fabric8-common/test/recorder"
-	testtoken "github.com/fabric8-services/fabric8-common/test/token"
+	testtokenconfig "github.com/fabric8-services/fabric8-common/test/token/configuration"
 	"github.com/fabric8-services/fabric8-common/token/jwk"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +22,7 @@ func TestFetchKeys(t *testing.T) {
 	require.NoError(t, err)
 	defer r.Stop()
 
-	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
+	config := testtokenconfig.NewManagerConfigurationMock(t)
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth-ok"
 	}
@@ -31,13 +30,12 @@ func TestFetchKeys(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("ok", func(t *testing.T) {
-		// when
+		// when loading keys explicitely
 		loadedKeys, err := jwk.FetchKeys("https://auth-ok/api/token/keys", httpsupport.WithRoundTripper(r))
-		// then all three keys are loaded
+		// then check all three keys are loaded as in the token manager
 		require.NoError(t, err)
 		require.Len(t, loadedKeys, 3)
 		for _, key := range loadedKeys {
-			t.Logf("checking key '%s' in %d keys...", key.KeyID, len(testtoken.TokenManager.PublicKeys()))
 			pk := tm.PublicKey(key.KeyID)
 			require.NotNil(t, pk)
 			require.Equal(t, pk, key.Key)

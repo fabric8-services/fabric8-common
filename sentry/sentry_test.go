@@ -8,6 +8,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-common/resource"
 	testtoken "github.com/fabric8-services/fabric8-common/test/token"
+	testtokenconfig "github.com/fabric8-services/fabric8-common/test/token/configuration"
 	"github.com/fabric8-services/fabric8-common/token"
 	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
@@ -20,21 +21,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func withTokenManager() context.Context {
+func withTokenManager(tm token.Manager) context.Context {
 	// this is just normal context object with no, token
 	// so this should fail saying no token available
-	return tokencontext.ContextWithTokenManager(context.Background(), testtoken.NewManager())
+	return tokencontext.ContextWithTokenManager(context.Background(), tm)
 }
 
-func withIncompleteToken() context.Context {
-	ctx := withTokenManager()
+func withIncompleteToken(tm token.Manager) context.Context {
+	ctx := withTokenManager(tm)
 	// Here we add a token which is incomplete
 	token := jwt.New(jwt.GetSigningMethod("RS256"))
 	return goajwt.WithJWT(ctx, token)
 }
 
-func withValidToken(t *testing.T, identityID string, identityUsername string) context.Context {
-	ctx := withTokenManager()
+func withValidToken(t *testing.T, tm token.Manager, identityID string, identityUsername string) context.Context {
+	ctx := withTokenManager(tm)
 	// Here we add a token that is perfectly valid
 	token, err := testtoken.GenerateTokenObject(identityID, identityUsername, testtoken.PrivateKey())
 	require.NoErrorf(t, err, "could not generate token: %v", errors.WithStack(err))
@@ -42,6 +43,8 @@ func withValidToken(t *testing.T, identityID string, identityUsername string) co
 }
 
 func TestExtractUserInfo(t *testing.T) {
+	config := testtokenconfig.NewManagerConfigurationMock(t)
+	tm := testtoken.NewManager(config)
 	resource.Require(t, resource.UnitTest)
 	close, err := InitializeSentryClient(nil,
 		WithUser(func(ctx context.Context) (*raven.User, error) {
@@ -78,7 +81,7 @@ func TestExtractUserInfo(t *testing.T) {
 
 	t.Run("missing token", func(t *testing.T) {
 		// when
-		userInfo, err := Sentry().userInfo(withTokenManager())
+		userInfo, err := Sentry().userInfo(withTokenManager(tm))
 		// then
 		require.Error(t, err)
 		assert.Nil(t, userInfo)
@@ -86,7 +89,7 @@ func TestExtractUserInfo(t *testing.T) {
 
 	t.Run("incomplete token", func(t *testing.T) {
 		// when
-		userInfo, err := Sentry().userInfo(withIncompleteToken())
+		userInfo, err := Sentry().userInfo(withIncompleteToken(tm))
 		// then
 		require.Error(t, err)
 		assert.Nil(t, userInfo)
@@ -96,7 +99,7 @@ func TestExtractUserInfo(t *testing.T) {
 		// when
 		userID := uuid.NewV4()
 		username := "testuser"
-		userInfo, err := Sentry().userInfo(withValidToken(t, userID.String(), username))
+		userInfo, err := Sentry().userInfo(withValidToken(t, tm, userID.String(), username))
 		// then
 		require.NoError(t, err)
 		require.NotNil(t, userInfo)

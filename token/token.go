@@ -4,8 +4,9 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"net/http"
+
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 
 	errs "github.com/fabric8-services/fabric8-common/errors"
 	"github.com/fabric8-services/fabric8-common/log"
@@ -118,10 +119,11 @@ func NewManager(config ManagerConfiguration, options ...httpsupport.HTTPClientOp
 }
 
 // NewManagerWithPublicKey returns a new token Manager for handling tokens with the only public key
-func NewManagerWithPublicKey(id string, key *rsa.PublicKey) Manager {
+func NewManagerWithPublicKey(id string, key *rsa.PublicKey, config ManagerConfiguration) Manager {
 	return &tokenManager{
 		publicKeysMap: map[string]*rsa.PublicKey{id: key},
 		publicKeys:    []*jwk.PublicKey{{KeyID: id, Key: key}},
+		config:        config,
 	}
 }
 
@@ -163,8 +165,9 @@ func (mgm *tokenManager) keyFunction(ctx context.Context) jwt.Keyfunc {
 			log.Error(ctx, map[string]interface{}{
 				"kid": kid,
 			}, "There is no public key with such ID")
-			return nil, errors.New(fmt.Sprintf("There is no public key with such ID: %s", kid))
+			return nil, errors.Errorf("There is no public key with such ID: %s", kid)
 		}
+		log.Debug(ctx, map[string]interface{}{"kid": kid}, "found key to parse token")
 		return key, nil
 	}
 }

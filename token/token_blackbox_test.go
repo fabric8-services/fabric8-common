@@ -10,7 +10,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-common/resource"
 	testsupport "github.com/fabric8-services/fabric8-common/test"
-	testconfiguration "github.com/fabric8-services/fabric8-common/test/configuration"
+	testtokenconfig "github.com/fabric8-services/fabric8-common/test/token/configuration"
 	"github.com/fabric8-services/fabric8-common/token"
 
 	"github.com/dgrijalva/jwt-go"
@@ -120,7 +120,7 @@ func createInvalidSAContext() context.Context {
 func TestAddLoginRequiredHeader(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
-	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
+	config := testtokenconfig.NewManagerConfigurationMock(t)
 	tm, err := token.NewManager(config)
 	require.NoError(t, err)
 	t.Run("without header set", func(t *testing.T) {
@@ -159,7 +159,7 @@ func assertHeaders(t *testing.T, tm token.Manager, tokenString string) {
 func TestParseValidTokenOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
-	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
+	config := testtokenconfig.NewManagerConfigurationMock(t)
 	tm, err := token.NewManager(config)
 	require.NoError(t, err)
 	identity := testsupport.NewIdentity()
@@ -195,7 +195,10 @@ func checkClaim(t *testing.T, token *jwt.Token, claimName string, expectedValue 
 func TestParseToken(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
-	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
+	config := testtokenconfig.NewManagerConfigurationMock(t)
+	config.GetDevModePrivateKeyFunc = func() []byte {
+		return []byte(privateKey)
+	}
 	tm, err := token.NewManager(config)
 	require.NoError(t, err)
 
@@ -297,7 +300,7 @@ func TestCheckClaimsFails(t *testing.T) {
 func TestLocateTokenInContext(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
-	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
+	config := testtokenconfig.NewManagerConfigurationMock(t)
 	tm, err := token.NewManager(config)
 	require.NoError(t, err)
 
@@ -345,3 +348,33 @@ func TestLocateTokenInContext(t *testing.T) {
 
 	})
 }
+
+// TODO replace with private dev key in configuration/configuration.go, but
+// also need to update some/all signed tokens in the tests above
+const privateKey = `-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA40yB6SNoU4SpWxTfG5ilu+BlLYikRyyEcJIGg//w/GyqtjvT
+/CVo92DRTh/DlrgwjSitmZrhauBnrCOoUBMin0/TXeSo3w2M5tEiiIFPbTDRf2jM
+fbSGEOke9O0USCCR+bM2TncrgZR74qlSwq38VCND4zHc89rAzqJ2LVM2aXkuBbO7
+TcgLNyooBrpOK9khVHAD64cyODAdJY4esUjcLdlcB7TMDGOgxGGn2RARU7+TUf32
+gZZbTMikbuPM5gXuzGlo/22ECbQSKuZpbGwgPIAZ5NN9QA4D1NRz9+KDoiXZ6deZ
+TTVCrZykJJ6RyLNfRh+XS+6G5nvcqAmfBpyOWwIDAQABAoIBAE5pBie23zZwfTu+
+Z3jNn96/+idLC+DBqq5qsXS3xhpOIlXbLbW98gfkjk+1BXPo9la7wadLlpeX8iuf
+4WA+OaNblj69ssO/mOvHGXKdqRixzpN1Q5XZwKX0xYkYf/ahxbmt6P4IfimlX1dB
+shsWigU8ZR7rBJ3ayMh/ouTf39ViIbXsHYpEubmACcLaOlXbEuZNr7ofkFQKl/mh
+XLWUeOoM97xY6Agw/gv60GIcxIC5OAg7iNqS+XNzhba7f2nf2YqodbN9H1BmEJsf
+RRaTTWlZAiQXC8lpZOKwP7DiMLOT78lfmlYtquEBhwRbXazfzsdf67Mr4Kdl2Cej
+Jy0EGwECgYEA/DZWB0Lb0tPdT1FmORNrBfGg3PjhX9FOilhbtUgX3nNKp8Zsi3yO
+yN6hf0/98qIGlmAQi5C92cXpdhqTiVAGktWD+q0a1W99udIjinS1tFrKgNtOyBWN
+uwDBZyhw8RrwpQinMe7B966SVDaphvvOWlB1TadMDh5kReJCYpvRCrMCgYEA5rZj
+djCU2UqMw6jIP07nCFjWgxPPjg7jP8aRo07oW2mv1sEA0doCyoZaMrdNeGd3fB0B
+sm+IvlQtWD7r0tWZI1GkYpdRkDFurdkIzVPV5pMwH4ByOq/Jf5ZqtjIpoMaRBirA
+whJyjmiGU3yDyPDLtEFpNgqM3mIyxS6M6UGKYbkCgYEAg6w+d6YBK+1uQiXGD5BC
+tKS0jgjlaOfWcEW3A0qzI3Dfjf3610vdI6OPfu8dLppGhCV9HdAgPdykiQNQ+UQt
+WmVcdPgA5WNCqUu7QGK0Joer52AXnkAacYHwdtHXPRkKf66n01rKK2wZexvan91A
+m0gcJcFs5IYbZZy9ecvNdB8CgYEAo4JZ5Vay93j1YGnLWcrixDCp/wXYUJbOidGC
+QBpZZQf3Hh11JkT7O2uSm2T727yAmw63uC2B3VotNOCLI8ZMHRLsjQ8vOCFAjqdF
+rLeg3iQss/bFfkA9b1Y8VNoiVJbGC3fbWu/WDoWXxa12fL/jruG43hsGEUnJL6Q5
+K8tOdskCgYABpoHFRxsvJ5Sp9CUS3BBTicVSkpAjoX2O3+cS9XL8IsIqZEMW7VKb
+16/H2BRvI0uUq12t+UCc0P0SyrWRGxwGR5zSYHVDOot5EDHqE8aYSbX4jiXtAAiu
+qCn3Rug8QWyBjjxnU3CxPRiLSmEllQAAVlzfRWn6kL4RKSyruUhZaA==
+-----END RSA PRIVATE KEY-----`
