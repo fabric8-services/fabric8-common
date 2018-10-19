@@ -28,7 +28,6 @@ const (
 	varLogLevel             = "log.level"
 	varDeveloperModeEnabled = "developer.mode.enabled"
 	varAuthURL              = "auth.url"
-	varKeysTokenPath        = "auth.keys.token.path"
 	varEnvironment          = "environment"
 	varLogJSON              = "log.json"
 	varHTTPAddress          = "http.address"
@@ -129,11 +128,6 @@ func (c *Registry) GetLogLevel() string {
 // e.g. token generation endpoint are enabled
 func (c *Registry) DeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
-}
-
-// GetKeysTokenPath returns the URL path to retrieve the public keys to verify tokens signature
-func (c *Registry) GetKeysTokenPath() string {
-	return c.v.GetString(varKeysTokenPath)
 }
 
 // GetAuthServiceURL returns the Auth Service URL

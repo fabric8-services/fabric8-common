@@ -15,9 +15,6 @@ func NewDefaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.Manager
 		return "https://auth.prod-preview.openshift.io"
 	}
 
-	config.GetAuthKeysPathFunc = func() string {
-		return "/api/token/keys"
-	}
 	config.GetDevModePrivateKeyFunc = func() []byte {
 		return []byte(testkeys.DevModePrivateKey)
 	}

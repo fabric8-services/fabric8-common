@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"net/http"
 
 	errs "github.com/fabric8-services/fabric8-common/errors"
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/log"
 	"github.com/fabric8-services/fabric8-common/token/jwk"
 	"github.com/fabric8-services/fabric8-common/token/tokencontext"
@@ -36,7 +36,6 @@ const (
 // ManagerConfiguration represents configuration needed to construct a token manager
 type ManagerConfiguration interface {
 	GetAuthServiceURL() string
-	GetAuthKeysPath() string
 	GetDevModePrivateKey() []byte
 }
 
@@ -83,7 +82,9 @@ func NewManager(config ManagerConfiguration, options ...httpsupport.HTTPClientOp
 	}
 	tm.config = config
 
-	keysEndpoint := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), config.GetAuthKeysPath())
+	authURL := httpsupport.AddTrailingSlashToURL(config.GetAuthServiceURL())
+	// TODO when we have a separate repo for Auth client we should use it to get the key path instead of hardcoding "api/token/keys"
+	keysEndpoint := fmt.Sprintf("%s%s", authURL, "api/token/keys")
 	remoteKeys, err := jwk.FetchKeys(keysEndpoint, options...)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
@@ -118,10 +119,11 @@ func NewManager(config ManagerConfiguration, options ...httpsupport.HTTPClientOp
 }
 
 // NewManagerWithPublicKey returns a new token Manager for handling tokens with the only public key
-func NewManagerWithPublicKey(id string, key *rsa.PublicKey) Manager {
+func NewManagerWithPublicKey(id string, key *rsa.PublicKey, config ManagerConfiguration) Manager {
 	return &tokenManager{
 		publicKeysMap: map[string]*rsa.PublicKey{id: key},
 		publicKeys:    []*jwk.PublicKey{{KeyID: id, Key: key}},
+		config:        config,
 	}
 }
 
@@ -214,7 +216,7 @@ func (mgm *tokenManager) Parse(ctx context.Context, tokenString string) (*jwt.To
 // AddLoginRequiredHeader adds "WWW-Authenticate: LOGIN" header to the response
 func (mgm *tokenManager) AddLoginRequiredHeader(rw http.ResponseWriter) {
 	rw.Header().Add("Access-Control-Expose-Headers", "WWW-Authenticate")
-	loginURL := mgm.config.GetAuthServiceURL() + "/api/login"
+	loginURL := httpsupport.AddTrailingSlashToURL(mgm.config.GetAuthServiceURL()) + "api/login"
 	rw.Header().Set("WWW-Authenticate", fmt.Sprintf("LOGIN url=%s, description=\"re-login is required\"", loginURL))
 }
 
