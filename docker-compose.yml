@@ -1,0 +1,11 @@
+version: '2'
+
+services:
+  db:
+    image: registry.centos.org/postgresql/postgresql:9.6
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
+    networks:
+      - default

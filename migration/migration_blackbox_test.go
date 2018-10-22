@@ -18,7 +18,9 @@ import (
 )
 
 const (
-	dbName = "test"
+	dbName      = "test"
+	defaultHost = "localhost"
+	defaultPort = "5435"
 )
 
 var host, port string
@@ -35,9 +37,13 @@ func (s *MigrationTestSuite) SetupTest() {
 	resource.Require(s.T(), resource.Database)
 
 	host = os.Getenv("F8_POSTGRES_HOST")
-	require.NotEmpty(s.T(), host, "F8_POSTGRES_HOST is not set")
+	if host == "" {
+		host = defaultHost
+	}
 	port = os.Getenv("F8_POSTGRES_PORT")
-	require.NotEmpty(s.T(), port, "F8_POSTGRES_PORT is not set")
+	if port == "" {
+		port = defaultPort
+	}
 
 	dbConfig := fmt.Sprintf("host=%s port=%s user=postgres password=mysecretpassword sslmode=disable connect_timeout=5", host, port)
 
