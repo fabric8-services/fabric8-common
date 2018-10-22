@@ -1,4 +1,4 @@
-package proxy
+package httpsupport
 
 import (
 	"bytes"
@@ -39,11 +39,21 @@ func RouteHTTPToPath(ctx context.Context, targetHost string, targetPath string) 
 //		return jsonapi.JSONErrorResponse(ctx, err)
 //	}
 // In the example above any request to http://localhost:8080/status?id=xyz will be routed to http://auth/status?id=xyz
-func RouteHTTP(ctx context.Context, target string) error {
-	return route(ctx, target, nil)
+func RouteHTTP(ctx context.Context, target string, options ...HTTPProxyOption) error {
+	return route(ctx, target, nil, options...)
 }
 
-func route(ctx context.Context, targetHost string, targetPath *string) error {
+// HTTPProxyOption an option to customiwze the HTTP proxy
+type HTTPProxyOption func(proxy *httputil.ReverseProxy)
+
+// WithProxyTransport an option to customize the proxy with the given roundtripper
+func WithProxyTransport(r http.RoundTripper) HTTPProxyOption {
+	return func(proxy *httputil.ReverseProxy) {
+		proxy.Transport = r
+	}
+}
+
+func route(ctx context.Context, targetHost string, targetPath *string, options ...HTTPProxyOption) error {
 	rw := goa.ContextResponse(ctx)
 	if rw == nil {
 		return errors.New("unable to get response from context")
@@ -65,6 +75,10 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 
 	director := newDirector(ctx, req, targetURL, targetPath)
 	proxy := &httputil.ReverseProxy{Director: director}
+	// configure the proxy with the options
+	for _, opt := range options {
+		opt(proxy)
+	}
 
 	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
 		gzr := gunzipResponseWriter{ctx: ctx, ResponseWriter: rw, targetURL: *req.URL}

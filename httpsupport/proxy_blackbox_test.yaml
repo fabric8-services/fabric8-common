@@ -1,0 +1,10 @@
+---
+version: 1
+interactions:
+- request:
+    url: https://test/api/foo
+    method: GET
+  response:
+    code: 200
+    status: 200 OK
+    body: 'ok!'
