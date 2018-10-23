@@ -1,4 +1,4 @@
-package cleaner
+package suite
 
 import (
 	"database/sql"

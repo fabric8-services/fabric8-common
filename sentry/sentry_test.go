@@ -14,7 +14,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/raven-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +22,7 @@ import (
 func withTokenManager() context.Context {
 	// this is just normal context object with no, token
 	// so this should fail saying no token available
-	return tokencontext.ContextWithTokenManager(context.Background(), testtoken.NewManager())
+	return tokencontext.ContextWithTokenManager(context.Background(), testtoken.TokenManager)
 }
 
 func withIncompleteToken() context.Context {
@@ -34,11 +33,9 @@ func withIncompleteToken() context.Context {
 }
 
 func withValidToken(t *testing.T, identityID string, identityUsername string) context.Context {
-	ctx := withTokenManager()
 	// Here we add a token that is perfectly valid
-	token, err := testtoken.GenerateTokenObject(identityID, identityUsername, testtoken.PrivateKey())
-	require.NoErrorf(t, err, "could not generate token: %v", errors.WithStack(err))
-	return goajwt.WithJWT(ctx, token)
+	ctx, _ := testtoken.EmbedTokenInContext(identityID, identityUsername)
+	return ctx
 }
 
 func TestExtractUserInfo(t *testing.T) {
