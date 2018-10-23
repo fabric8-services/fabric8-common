@@ -1,4 +1,4 @@
-package proxy
+package httpsupport_test
 
 import (
 	"compress/gzip"
@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/fabric8-services/fabric8-common/test/recorder"
 
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 
@@ -40,7 +42,7 @@ func TestProxy(t *testing.T) {
 	statusCtx := newStatusContext(goaCtx, req)
 	statusCtx.Request.Header.Del("Accept-Encoding")
 
-	err = RouteHTTP(statusCtx, "http://localhost:8889")
+	err = httpsupport.RouteHTTP(statusCtx, "http://localhost:8889")
 	require.NoError(t, err)
 
 	assert.Equal(t, 201, rw.Code)
@@ -59,7 +61,7 @@ func TestProxy(t *testing.T) {
 	statusCtx = newStatusContext(goaCtx, req)
 	statusCtx.Request.Header.Set("Accept-Encoding", "gzip")
 
-	err = RouteHTTPToPath(statusCtx, "http://localhost:8889", "/api")
+	err = httpsupport.RouteHTTPToPath(statusCtx, "http://localhost:8889", "/api")
 	require.NoError(t, err)
 
 	assert.Equal(t, 201, rw.Code)
@@ -69,15 +71,44 @@ func TestProxy(t *testing.T) {
 	assert.Equal(t, veryLongBody, body)
 }
 
+func TestProxyWithOptions(t *testing.T) {
+	// given
+	resource.Require(t, resource.UnitTest)
+	r, err := recorder.New("proxy_blackbox_test")
+	require.NoError(t, err)
+	//nolint
+	defer r.Stop()
+	u, err := url.Parse("http://domain.org/api/foo")
+	require.NoError(t, err)
+	req, err := http.NewRequest("GET", u.String(), nil)
+	require.NoError(t, err)
+
+	rw := httptest.NewRecorder()
+	ctx := context.Background()
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "ProxyTest"), rw, req, url.Values{})
+	statusCtx := newStatusContext(goaCtx, req)
+	statusCtx.Request.Header.Del("Accept-Encoding")
+	// when
+	err = httpsupport.RouteHTTP(statusCtx, "https://test", httpsupport.WithProxyTransport(r))
+	// then
+	require.NoError(t, err)
+	assert.Equal(t, 200, rw.Code)
+	body, err := httpsupport.ReadBody(rw.Result().Body)
+	require.NoError(t, err)
+	assert.Equal(t, "ok!", body)
+}
+
 func TestFailsIfResponseDataIsMissing(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// Missing ResponseData
 	ctx := context.Background()
-	err := route(ctx, "http://auth", nil)
+	err := httpsupport.RouteHTTP(ctx, "http://auth", nil)
 	require.Error(t, err)
 	assert.Equal(t, "unable to get response from context", err.Error())
 }
 
 func TestFailsIfInvalidTargetURL(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// Invalid URL
 	rw := httptest.NewRecorder()
 	u, err := url.Parse("http://domain.org/api")
@@ -88,14 +119,9 @@ func TestFailsIfInvalidTargetURL(t *testing.T) {
 	ctx := context.Background()
 	goaCtx := goa.NewContext(goa.WithAction(ctx, "ProxyTest"), rw, req, url.Values{})
 
-	err = route(goaCtx, "%@#", nil)
+	err = httpsupport.RouteHTTP(goaCtx, "%@#", nil)
 	require.Error(t, err)
 	assert.Equal(t, "parse %@: invalid URL escape \"%@\"", err.Error())
-}
-
-func TestSingleJoiningSlash(t *testing.T) {
-	assert.Equal(t, "abc/xyz", singleJoiningSlash("abc", "xyz"))
-	assert.Equal(t, "abc/xyz", singleJoiningSlash("abc", "/xyz"))
 }
 
 type statusContext struct {
