@@ -76,6 +76,7 @@ func TestProxyWithOptions(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	r, err := recorder.New("proxy_blackbox_test")
 	require.NoError(t, err)
+	//nolint
 	defer r.Stop()
 	u, err := url.Parse("http://domain.org/api/foo")
 	require.NoError(t, err)
