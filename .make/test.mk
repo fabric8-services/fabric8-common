@@ -99,6 +99,7 @@ COV_DIR = $(TMP_PATH)/coverage
 
 # Files that combine package coverages for unit- and integration-tests separately
 COV_PATH_UNIT = $(TMP_PATH)/coverage.unit.mode-$(COVERAGE_MODE)
+COV_PATH_INTEGRATION = $(TMP_PATH)/coverage.integration.mode-$(COVERAGE_MODE)
 
 # File that stores overall coverge for all packages and unit- integration- and remote-tests
 COV_PATH_OVERALL = $(TMP_PATH)/coverage.mode-$(COVERAGE_MODE)
@@ -109,6 +110,12 @@ ALL_PKGS_EXCLUDE_PATTERN = "vendor\|account\/tenant\|app\'\|tool\/cli\|design\|c
 # This pattern excludes some folders from the go code analysis
 GOANALYSIS_PKGS_EXCLUDE_PATTERN="vendor|account/tenant|app|client|tool/cli"
 GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS_EXCLUDE_PATTERN))
+
+# docker-compose for integration tests
+DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
+DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose.integration-test.yaml
+# Alternative path to docker-compose (if downloaded)
+DOCKER_COMPOSE_BIN_ALT = $(TMP_PATH)/docker-compose
 
 #-------------------------------------------------------------------------------
 # Normal test targets
@@ -121,21 +128,21 @@ GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS
 
 .PHONY: test-all
 ## Runs test-unit and test-integration targets.
-test-all: prebuild-check test-unit
+test-all: prebuild-check test-unit test-integration
 
 .PHONY: test-unit
 ## Runs the unit tests and produces coverage files for each package.
-test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
+test-unit: prebuild-check generate clean-coverage-unit $(COV_PATH_UNIT)
 
 .PHONY: test-unit-no-coverage
 ## Runs the unit tests and WITHOUT producing coverage files for each package.
-test-unit-no-coverage: prebuild-check $(SOURCES)
+test-unit-no-coverage: prebuild-check generate $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_UNIT_TEST=1 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
 .PHONY: test-unit-no-coverage-junit
-test-unit-no-coverage-junit: prebuild-check ${GO_JUNIT_BIN} ${TMP_PATH}
+test-unit-no-coverage-junit: prebuild-check generate ${GO_JUNIT_BIN} ${TMP_PATH}
 	bash -c "set -o pipefail; make test-unit-no-coverage 2>&1 | tee >(${GO_JUNIT_BIN} > ${TMP_PATH}/junit.xml)"
 
 #-------------------------------------------------------------------------------
@@ -188,7 +195,7 @@ endef
 
 $(COV_PATH_OVERALL): $(GOCOVMERGE_BIN)
 	@echo "generating '$(COV_PATH_OVERALL)'..."
-	@$(GOCOVMERGE_BIN) $(COV_PATH_UNIT) > $(COV_PATH_OVERALL)
+	@$(GOCOVMERGE_BIN) $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) > $(COV_PATH_OVERALL)
 
 # Iterates over every package and prints its test coverage
 # for a given test name ("unit", "integration" or "remote").
@@ -218,6 +225,12 @@ coverage-unit: prebuild-check $(COV_PATH_UNIT)
 	@go tool cover -func=$(COV_PATH_UNIT)
 	$(call package-coverage,unit)
 
+.PHONY: coverage-integration
+coverage-integration: prebuild-check $(COV_PATH_INTEGRATION)
+	# $(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
+	@go tool cover -func=$(COV_PATH_INTEGRATION)
+	$(call package-coverage,integration)
+
 .PHONY: coverage-all
 ## Output coverage profile information for each function.
 ## Re-runs unit-, integration- and remote-tests if coverage information is outdated.
@@ -236,6 +249,11 @@ coverage-unit-html: prebuild-check $(COV_PATH_UNIT)
 	# $(call cleanup-coverage-file,$(COV_PATH_UNIT))
 	@go tool cover -html=$(COV_PATH_UNIT)
 
+.PHONY: coverage-integration-html
+coverage-integration-html: prebuild-check $(COV_PATH_INTEGRATION)
+	# $(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
+	@go tool cover -html=$(COV_PATH_INTEGRATION)
+
 .PHONY: coverage-all-html
 ## Output coverage profile information for each function.
 ## Re-runs unit-, integration- and remote-tests if coverage information is outdated.
@@ -252,10 +270,20 @@ gocov-unit-annotate: prebuild-check $(GOCOV_BIN) $(COV_PATH_UNIT)
 	# $(call cleanup-coverage-file,$(COV_PATH_UNIT))
 	@$(GOCOV_BIN) convert $(COV_PATH_UNIT) | $(GOCOV_BIN) annotate -
 
+.PHONY: gocov-integration-annotate
+gocov-integration-annotate: prebuild-check $(GOCOV_BIN) $(COV_PATH_INTEGRATION)
+	# $(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
+	@$(GOCOV_BIN) convert $(COV_PATH_INTEGRATION) | $(GOCOV_BIN) annotate -
+
 .PHONY: .gocov-unit-report
 .gocov-unit-report: prebuild-check $(GOCOV_BIN) $(COV_PATH_UNIT)
 	# $(call cleanup-coverage-file,$(COV_PATH_UNIT))
 	@$(GOCOV_BIN) convert $(COV_PATH_UNIT) | $(GOCOV_BIN) report
+
+.PHONY: .gocov-integration-report
+.gocov-integration-report: prebuild-check $(GOCOV_BIN) $(COV_PATH_INTEGRATION)
+	# $(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
+	@$(GOCOV_BIN) convert $(COV_PATH_INTEGRATION) | $(GOCOV_BIN) report
 
 #-------------------------------------------------------------------------------
 # Test artifacts are coverage files for unit, integration and remote tests.
@@ -330,6 +358,19 @@ $(COV_PATH_UNIT): $(SOURCES) $(GOCOVMERGE_BIN)
 	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_UNIT),$(ERRORS_FILE),,$(ALL_PKGS_COMMA_SEPARATED)))
 	$(call check-test-results,$(ERRORS_FILE))
 
+# NOTE: We don't have prebuild-check as a dependency here because it would cause
+#       the recipe to be always executed.
+$(COV_PATH_INTEGRATION): $(SOURCES) $(GOCOVMERGE_BIN)
+	$(eval TEST_NAME := integration)
+	$(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
+	$(call log-info,"Running test: $(TEST_NAME)")
+	@mkdir -p $(COV_DIR)
+	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_INTEGRATION)
+	@-rm -f $(ERRORS_FILE)
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	$(eval ALL_PKGS_COMMA_SEPARATED:=$(shell echo $(TEST_PACKAGES)  | tr ' ' ,))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0,$(ALL_PKGS_COMMA_SEPARATED)))
+	$(call check-test-results,$(ERRORS_FILE))
 
 #-------------------------------------------------------------------------------
 # Generate mock structs for testing
@@ -361,7 +402,7 @@ $(MINIMOCK_BIN):
 CLEAN_TARGETS += clean-coverage
 .PHONY: clean-coverage
 ## Removes all coverage files
-clean-coverage: clean-coverage-unit clean-coverage-overall
+clean-coverage: clean-coverage-unit clean-coverage-integration clean-coverage-overall
 	-@rm -rf $(COV_DIR)
 
 CLEAN_TARGETS += clean-coverage-overall
@@ -375,3 +416,56 @@ CLEAN_TARGETS += clean-coverage-unit
 ## Removes unit test coverage file
 clean-coverage-unit:
 	-@rm -f $(COV_PATH_UNIT)
+
+CLEAN_TARGETS += clean-coverage-integration
+.PHONY: clean-coverage-integration
+clean-coverage-integration:
+	-@rm -f $(COV_PATH_INTEGRATION)
+
+# Downloads docker-compose to tmp/docker-compose if it does not already exist.
+define download-docker-compose
+	@if [ ! -f "$(DOCKER_COMPOSE_BIN_ALT)" ]; then \
+		echo "Downloading docker-compose to $(DOCKER_COMPOSE_BIN_ALT)"; \
+		UNAME_S=$(shell uname -s); \
+		UNAME_M=$(shell uname -m); \
+		URL="https://github.com/docker/compose/releases/download/1.11.2/docker-compose-$${UNAME_S}-$${UNAME_M}"; \
+		curl --silent -L $${URL} > $(DOCKER_COMPOSE_BIN_ALT); \
+		chmod +x $(DOCKER_COMPOSE_BIN_ALT); \
+	fi
+endef
+
+.PHONY: integration-test-env-prepare
+integration-test-env-prepare:
+ifdef DOCKER_COMPOSE_BIN
+	@$(DOCKER_COMPOSE_BIN) -f $(DOCKER_COMPOSE_FILE) up -d
+else
+ifneq ($(OS),Windows_NT)
+	$(call download-docker-compose)
+	@$(DOCKER_COMPOSE_BIN_ALT) -f $(DOCKER_COMPOSE_FILE) up -d
+else
+	$(error The "$(DOCKER_COMPOSE_BIN_NAME)" executable could not be found in your PATH)
+endif
+endif
+
+.PHONY: integration-test-env-tear-down
+integration-test-env-tear-down:
+ifdef DOCKER_COMPOSE_BIN
+	@$(DOCKER_COMPOSE_BIN) -f $(DOCKER_COMPOSE_FILE) down
+else
+ifneq ($(OS),Windows_NT)
+	$(call download-docker-compose)
+	@$(DOCKER_COMPOSE_BIN_ALT) -f $(DOCKER_COMPOSE_FILE) down
+else
+	$(error The "$(DOCKER_COMPOSE_BIN_NAME)" executable could not be found in your PATH)
+endif
+endif
+
+.PHONY: test-integration-no-coverage
+test-integration-no-coverage: prebuild-check generate $(SOURCES)
+	$(call log-info,"Running test: $@")
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+
+.PHONY: test-integration
+## Make sure you ran "make integration-test-env-prepare" before you run this target.
+test-integration: prebuild-check generate clean-coverage-integration $(COV_PATH_INTEGRATION)

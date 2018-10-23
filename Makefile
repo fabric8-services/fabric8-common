@@ -49,7 +49,7 @@ BUILD_TIME=`date -u '+%Y-%m-%dT%H:%M:%SZ'`
 # If nothing was specified, run all targets as if in a fresh clone
 .PHONY: all
 ## Default target - fetch dependencies and build.
-all: prebuild-check deps build
+all: prebuild-check deps generate build
 
 .PHONY: format-go-code
 ## Formats any go file that differs from gofmt's style
@@ -237,6 +237,20 @@ endif
 ifndef DEP_BIN
 	$(error The "$(DEP_BIN_NAME)" executable could not be found in your PATH)
 endif
+
+.PHONY: generate
+generate: migration/sqlbindata_test.go
+
+migration/sqlbindata_test.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-test-files/*.sql)
+	$(GO_BINDATA_BIN) \
+		-o migration/sqlbindata_test.go \
+		-pkg migration_test \
+		-prefix migration/sql-test-files \
+		-nocompress \
+		migration/sql-test-files
+
+$(GO_BINDATA_BIN): $(VENDOR_DIR)
+	cd $(VENDOR_DIR)/github.com/jteeuwen/go-bindata/go-bindata && go build -v
 
 # For the global "clean" target all targets in this variable will be executed
 CLEAN_TARGETS =

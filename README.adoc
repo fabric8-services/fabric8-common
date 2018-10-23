@@ -1,14 +1,16 @@
-
 = Fabric8 Common
 :toc:
-:toc-placement: preamble
+:toclevels: 5
 :sectnums:
+:sectnumlevels: 4
+:toc-placement: preamble
 
 image:https://ci.centos.org/buildStatus/icon?job=devtools-fabric8-common-build-master-coverage[Jenkins,link="https://ci.centos.org/view/Devtools/job/devtools-fabric8-common-build-master-coverage/lastBuild/"]
 image:https://goreportcard.com/badge/github.com/fabric8-services/fabric8-common[Go Report Card, link="https://goreportcard.com/report/github.com/fabric8-services/fabric8-common"]
 image:https://godoc.org/github.com/fabric8-services/fabric8-common?status.png[GoDoc,link="https://godoc.org/github.com/fabric8-services/fabric8-common"]
 image:https://codecov.io/gh/fabric8-services/fabric8-common/branch/master/graph/badge.svg[Codecov.io,link="https://codecov.io/gh/fabric8-services/fabric8-common"]
 
+== Overview
 
 A repository containing all common packages used by the fabric8 services. This repository addresses issue https://github.com/openshiftio/openshift.io/issues/3553[#3553]
 
@@ -36,3 +38,49 @@ Contents of this repository are anticipated to include:
 ** JWT token parsing (jwt_token to token_string and token_string to jwt_token)
 
 For Contributing to this project, please refer https://github.com/fabric8-services/fabric8-common/blob/master/CONTRIBUTING.adoc[CONTRIBUTING.md]
+
+== Build Project
+
+To build -> `make build`
+
+This will mainly run `go build` and report any compilation errors.  This will NOT generate any executable as fabric8-common is not a service but collection of go packages which will be imported by other fabric8 services.
+
+== Run Tests
+
+There are two kind of test, unit test and integration test.  Unit test does not required Database while Integration test requies Database.
+
+There are two ways to run tests, without docker and with docker.  Without docker are mainly use for development and testing on developer machine while with docker are mainly use by CI/CD jobs.
+
+=== Without docker
+
+For Unit test, it can be run directly.
+
+- Run Unit tests -> `make test-unit-no-coverage`, `make test-unit`
+
+For Integration test, first need to set Database and then run tests.
+
+- Set Database -> `docker-compose up -d db`
+- Run Integration tests -> `make test-integration-no-coverage`, `make test-integration`
+
+To remove Database started with `docker-compose up -d db`, run `docker-compose down`
+
+=== With docker
+
+One can run tests with docker locally but needs extra setup.
+
+First start docker image for this project.
+
+- Start Docker image -> `make docker-start` (This will start docker image "fabric8-common-local-build")
+
+For Unit test, it can be run directly.
+
+- Run Unit tests -> `make docker-test-unit-no-coverage`, `make docker-test-unit`
+
+For Integration test, first need to set Database and then run tests.
+
+- Set Database -> `make integration-test-env-prepare` (This will start docker image "make_postgres_integration_test_1")
+- Run Integration tests -> `make docker-test-integration-no-coverage`, `make docker-test-integration`
+
+To remove Docker image started with `make docker-start`, run `make docker-rm`
+
+To remove Database started with `make integration-test-env-prepare`, run `make integration-test-env-tear-down`
