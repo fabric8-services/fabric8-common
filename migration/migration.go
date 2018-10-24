@@ -53,7 +53,7 @@ func Migrate(db *sql.DB, catalog string, migrateData MigrateData) error {
 			return errs.Errorf("failed to start transaction: %s", err)
 		}
 
-		err = migrateToNextVersion(tx, &nextVersion, m, catalog)
+		err = MigrateToNextVersion(tx, &nextVersion, m, catalog)
 
 		if err != nil {
 			oldErr := err
@@ -104,10 +104,10 @@ func getMigrations(migrateData MigrateData) migrations {
 	return m
 }
 
-// migrateToNextVersion migrates the database to the nextVersion.
+// MigrateToNextVersion migrates the database to the nextVersion.
 // If the database is already at nextVersion or higher, the nextVersion
 // will be set to the actual next version.
-func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations, catalog string) error {
+func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations, catalog string) error {
 	// Obtain exclusive transaction level advisory that doesn't depend on any table.
 	// Once obtained, the lock is held for the remainder of the current transaction.
 	// (There is no UNLOCK TABLE command; locks are always released at transaction end.)
