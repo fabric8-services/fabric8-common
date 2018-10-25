@@ -6,10 +6,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/test"
+
 	"github.com/fabric8-services/fabric8-common/resource"
 	testtoken "github.com/fabric8-services/fabric8-common/test/token"
 	"github.com/fabric8-services/fabric8-common/token"
-	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/raven-go"
@@ -22,7 +23,7 @@ import (
 func withTokenManager() context.Context {
 	// this is just normal context object with no, token
 	// so this should fail saying no token available
-	return tokencontext.ContextWithTokenManager(context.Background(), testtoken.TokenManager)
+	return token.ContextWithTokenManager(context.Background(), testtoken.TokenManager)
 }
 
 func withIncompleteToken() context.Context {
@@ -32,10 +33,10 @@ func withIncompleteToken() context.Context {
 	return goajwt.WithJWT(ctx, token)
 }
 
-func withValidToken(t *testing.T, identityID string, identityUsername string) context.Context {
+func withValidToken(t *testing.T, identityID string, identityUsername string) (context.Context, error) {
 	// Here we add a token that is perfectly valid
-	ctx, _ := testtoken.EmbedTokenInContext(identityID, identityUsername)
-	return ctx
+	ctx, _, err := test.EmbedTokenInContext(identityID, identityUsername)
+	return ctx, err
 }
 
 func TestExtractUserInfo(t *testing.T) {
@@ -46,12 +47,11 @@ func TestExtractUserInfo(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-			q := *m
 			token := goajwt.ContextJWT(ctx)
 			if token == nil {
 				return nil, fmt.Errorf("no token found in context")
 			}
-			t, err := q.ParseToken(ctx, token.Raw)
+			t, err := m.ParseToken(ctx, token.Raw)
 			if err != nil {
 				return nil, err
 			}
@@ -93,7 +93,9 @@ func TestExtractUserInfo(t *testing.T) {
 		// when
 		userID := uuid.NewV4()
 		username := "testuser"
-		userInfo, err := Sentry().userInfo(withValidToken(t, userID.String(), username))
+		ctx, err := withValidToken(t, userID.String(), username)
+		require.NoError(t, err)
+		userInfo, err := Sentry().userInfo(ctx)
 		// then
 		require.NoError(t, err)
 		require.NotNil(t, userInfo)

@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/log"
 	"github.com/fabric8-services/fabric8-common/token/jwk"
-	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -288,24 +287,11 @@ func CheckClaims(claims *TokenClaims) error {
 	return nil
 }
 
-// ReadManagerFromContext extracts the token manager
-func ReadManagerFromContext(ctx context.Context) (*tokenManager, error) {
-	tm := tokencontext.ReadTokenManagerFromContext(ctx)
-	if tm == nil {
-		log.Error(ctx, map[string]interface{}{
-			"token": tm,
-		}, "missing token manager")
-
-		return nil, errors.New("missing token manager")
-	}
-	return tm.(*tokenManager), nil
-}
-
 // InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.
 func InjectTokenManager(tokenManager Manager) goa.Middleware {
 	return func(h goa.Handler) goa.Handler {
 		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
-			ctxWithTM := tokencontext.ContextWithTokenManager(ctx, tokenManager)
+			ctxWithTM := ContextWithTokenManager(ctx, tokenManager)
 			return h(ctxWithTM, rw, req)
 		}
 	}
