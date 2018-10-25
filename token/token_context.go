@@ -2,6 +2,9 @@ package token
 
 import (
 	"context"
+
+	"github.com/fabric8-services/fabric8-common/log"
+	"github.com/pkg/errors"
 )
 
 type contextTMKey int
@@ -12,11 +15,17 @@ const (
 	contextTokenManagerKey contextTMKey = iota
 )
 
-// ReadTokenManagerFromContext returns an interface that encapsulates the
-// tokenManager extracted from context. This interface can be safely converted.
-// Must have been set by ContextWithTokenManager ONLY.
-func ReadTokenManagerFromContext(ctx context.Context) interface{} {
-	return ctx.Value(contextTokenManagerKey)
+// ReadManagerFromContext extracts the token manager from the context and returns it
+func ReadManagerFromContext(ctx context.Context) (Manager, error) {
+	tm := ctx.Value(contextTokenManagerKey)
+	if tm == nil {
+		log.Error(ctx, map[string]interface{}{
+			"token": tm,
+		}, "missing token manager")
+
+		return nil, errors.New("missing token manager")
+	}
+	return tm.(*tokenManager), nil
 }
 
 // ContextWithTokenManager injects tokenManager in the context for every incoming request

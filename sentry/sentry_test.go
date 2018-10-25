@@ -47,12 +47,11 @@ func TestExtractUserInfo(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-			q := *m
 			token := goajwt.ContextJWT(ctx)
 			if token == nil {
 				return nil, fmt.Errorf("no token found in context")
 			}
-			t, err := q.ParseToken(ctx, token.Raw)
+			t, err := m.ParseToken(ctx, token.Raw)
 			if err != nil {
 				return nil, err
 			}
