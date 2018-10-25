@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"net/http"
+	"sync"
 
 	errs "github.com/fabric8-services/fabric8-common/errors"
 	"github.com/fabric8-services/fabric8-common/httpsupport"
@@ -32,6 +33,20 @@ const (
 
 	devModeKeyID = "test-key"
 )
+
+var defaultManager Manager
+var defaultOnce sync.Once
+var defaultErr error
+
+// DefaultManager creates the default manager if it has not created yet.
+// This function must be called in main to make sure the default manager is created during service startup.
+// It will try to create the default manager only once even if called multiple times.
+func DefaultManager(config ManagerConfiguration) (Manager, error) {
+	defaultOnce.Do(func() {
+		defaultManager, defaultErr = NewManager(config)
+	})
+	return defaultManager, defaultErr
+}
 
 // ManagerConfiguration represents configuration needed to construct a token manager
 type ManagerConfiguration interface {
