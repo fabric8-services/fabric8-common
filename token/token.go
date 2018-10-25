@@ -272,19 +272,6 @@ func CheckClaims(claims *TokenClaims) error {
 	return nil
 }
 
-// ReadManagerFromContext extracts the token manager
-func ReadManagerFromContext(ctx context.Context) (*tokenManager, error) {
-	tm := ReadTokenManagerFromContext(ctx)
-	if tm == nil {
-		log.Error(ctx, map[string]interface{}{
-			"token": tm,
-		}, "missing token manager")
-
-		return nil, errors.New("missing token manager")
-	}
-	return tm.(*tokenManager), nil
-}
-
 // InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.
 func InjectTokenManager(tokenManager Manager) goa.Middleware {
 	return func(h goa.Handler) goa.Handler {
