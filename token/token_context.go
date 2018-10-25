@@ -25,7 +25,7 @@ func ReadManagerFromContext(ctx context.Context) (Manager, error) {
 
 		return nil, errors.New("missing token manager")
 	}
-	return tm.(*tokenManager), nil
+	return tm.(Manager), nil
 }
 
 // ContextWithTokenManager injects tokenManager in the context for every incoming request
