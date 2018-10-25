@@ -7,11 +7,14 @@ import (
 	"net/http/httptest"
 	"time"
 
+	testtoken "github.com/fabric8-services/fabric8-common/test/token"
 	"github.com/fabric8-services/fabric8-common/token"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
+	client "github.com/goadesign/goa/client"
 	jwtgoa "github.com/goadesign/goa/middleware/security/jwt"
+
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
@@ -140,6 +143,34 @@ func ContextWithRequest(ctx context.Context) (context.Context, error) {
 		return nil, errs.Wrapf(err, "unable to initialize a new request")
 	}
 	return goa.NewContext(goa.WithAction(ctx, "Test"), rw, req, nil), nil
+}
+
+func ContextWithTokenAndRequestID() (context.Context, string, string, string, error) {
+	identityID := uuid.NewV4().String()
+	ctx, ctxToken, err := EmbedTokenInContext(identityID, uuid.NewV4().String())
+	if err != nil {
+		return nil, "", "", "", err
+	}
+	ctx = token.ContextWithTokenManager(ctx, testtoken.TokenManager)
+	reqID := uuid.NewV4().String()
+	ctx = client.SetContextRequestID(ctx, reqID)
+	return ctx, identityID, ctxToken, reqID, nil
+}
+
+// EmbedTokenInContext generates a token and embeds it into the context along with token manager
+func EmbedTokenInContext(sub, username string) (context.Context, string, error) {
+	tokenString := testtoken.GenerateToken(sub, username)
+	extracted, err := testtoken.TokenManager.Parse(context.Background(), tokenString)
+	if err != nil {
+		return nil, "", err
+	}
+	// Embed Token in the context
+	ctx := jwtgoa.WithJWT(context.Background(), extracted)
+	ctx, err = ContextWithRequest(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	return token.ContextWithTokenManager(ctx, testtoken.TokenManager), tokenString, nil
 }
 
 func privateKey(config token.ManagerConfiguration) (*rsa.PrivateKey, string, error) {

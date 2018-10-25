@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/test"
+
 	"github.com/fabric8-services/fabric8-common/resource"
 	testtoken "github.com/fabric8-services/fabric8-common/test/token"
 	"github.com/fabric8-services/fabric8-common/token"
@@ -33,7 +35,7 @@ func withIncompleteToken() context.Context {
 
 func withValidToken(t *testing.T, identityID string, identityUsername string) (context.Context, error) {
 	// Here we add a token that is perfectly valid
-	ctx, _, err := testtoken.EmbedTokenInContext(identityID, identityUsername)
+	ctx, _, err := test.EmbedTokenInContext(identityID, identityUsername)
 	return ctx, err
 }
 

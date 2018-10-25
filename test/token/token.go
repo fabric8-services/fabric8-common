@@ -1,18 +1,14 @@
 package token
 
 import (
-	"context"
 	"crypto/rsa"
 	"fmt"
 	"time"
-
-	"github.com/fabric8-services/fabric8-common/test"
 
 	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/fabric8-services/fabric8-common/token"
 
 	"github.com/dgrijalva/jwt-go"
-	jwtgoa "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
@@ -35,22 +31,6 @@ type dummyConfig struct{}
 
 func (c *dummyConfig) GetAuthServiceURL() string    { return "https://auth.openshift.io" }
 func (c *dummyConfig) GetDevModePrivateKey() []byte { return nil }
-
-// EmbedTokenInContext generates a token and embeds it into the context along with token manager
-func EmbedTokenInContext(sub, username string) (context.Context, string, error) {
-	tokenString := GenerateToken(sub, username)
-	extracted, err := TokenManager.Parse(context.Background(), tokenString)
-	if err != nil {
-		return nil, "", err
-	}
-	// Embed Token in the context
-	ctx := jwtgoa.WithJWT(context.Background(), extracted)
-	ctx, err = test.ContextWithRequest(ctx)
-	if err != nil {
-		return nil, "", err
-	}
-	return token.ContextWithTokenManager(ctx, TokenManager), tokenString, nil
-}
 
 // GenerateToken generates a JWT user token and signs it using the default private key
 func GenerateToken(identityID string, identityUsername string) string {
