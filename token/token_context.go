@@ -1,6 +1,4 @@
-// Package token_context contains the code that extract token manager from the
-// context.
-package tokencontext
+package token
 
 import (
 	"context"
