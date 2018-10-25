@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/log"
 	"github.com/fabric8-services/fabric8-common/token/jwk"
-	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -275,7 +274,7 @@ func CheckClaims(claims *TokenClaims) error {
 
 // ReadManagerFromContext extracts the token manager
 func ReadManagerFromContext(ctx context.Context) (*tokenManager, error) {
-	tm := tokencontext.ReadTokenManagerFromContext(ctx)
+	tm := ReadTokenManagerFromContext(ctx)
 	if tm == nil {
 		log.Error(ctx, map[string]interface{}{
 			"token": tm,
@@ -290,7 +289,7 @@ func ReadManagerFromContext(ctx context.Context) (*tokenManager, error) {
 func InjectTokenManager(tokenManager Manager) goa.Middleware {
 	return func(h goa.Handler) goa.Handler {
 		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
-			ctxWithTM := tokencontext.ContextWithTokenManager(ctx, tokenManager)
+			ctxWithTM := ContextWithTokenManager(ctx, tokenManager)
 			return h(ctxWithTM, rw, req)
 		}
 	}

@@ -5,15 +5,12 @@ import (
 	"crypto/rsa"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"time"
 
 	"github.com/fabric8-services/fabric8-common/token"
-	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	"github.com/goadesign/goa/client"
 	jwtgoa "github.com/goadesign/goa/middleware/security/jwt"
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
@@ -44,7 +41,7 @@ func EmbedUserTokenInContext(ctx context.Context, identity *Identity, tm token.M
 	if err != nil {
 		return nil, err
 	}
-	return embedTokenInContext(ctx, token, tm), nil
+	return embedTokenInContext(ctx, token, tm)
 }
 
 // EmbedServiceAccountTokenInContext generates a token for the given identity and embed it into the context along with token manager
@@ -53,16 +50,16 @@ func EmbedServiceAccountTokenInContext(ctx context.Context, identity *Identity, 
 	if err != nil {
 		return nil, err
 	}
-	return embedTokenInContext(ctx, token, tm), nil
+	return embedTokenInContext(ctx, token, tm)
 }
 
-func embedTokenInContext(ctx context.Context, token *jwt.Token, tm token.Manager) context.Context {
+func embedTokenInContext(ctx context.Context, tk *jwt.Token, tm token.Manager) (context.Context, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	jwtCtx := jwtgoa.WithJWT(ctx, token)
-	jwtCtx = ContextWithRequest(jwtCtx)
-	return tokencontext.ContextWithTokenManager(jwtCtx, tm)
+	ctx = token.ContextWithTokenManager(ctx, tm)
+	ctx = jwtgoa.WithJWT(ctx, tk)
+	return ContextWithRequest(ctx)
 }
 
 // GenerateSignedUserToken generates a JWT token and signs it using the default private key
@@ -132,38 +129,17 @@ func generateServiceAccountToken(identity *Identity) *jwt.Token {
 }
 
 // ContextWithRequest return a Goa context with a request
-func ContextWithRequest(ctx context.Context) context.Context {
+func ContextWithRequest(ctx context.Context) (context.Context, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	u := &url.URL{
-		Scheme: "https",
-		Host:   "cluster.openshift.io",
-	}
 	rw := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", u.String(), nil)
+	url := "https://common-test"
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		panic("invalid test " + err.Error()) // bug
+		return nil, errs.Wrapf(err, "unable to initialize a new request")
 	}
-	return goa.NewContext(goa.WithAction(ctx, "Test"), rw, req, url.Values{})
-}
-
-// ContextWithTokenAndRequestID returns a context with an embedded user token
-func ContextWithTokenAndRequestID(tm token.Manager, config token.ManagerConfiguration) (context.Context, *Identity, string, error) {
-	identity := NewIdentity()
-	ctx, err := EmbedUserTokenInContext(nil, identity, tm, config)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	reqID := uuid.NewV4().String()
-	ctx = client.SetContextRequestID(ctx, reqID)
-
-	return ctx, identity, reqID, nil
-}
-
-// ContextWithTokenManager returns a context with the given token manager
-func ContextWithTokenManager(tm token.Manager) context.Context {
-	return tokencontext.ContextWithTokenManager(context.Background(), tm)
+	return goa.NewContext(goa.WithAction(ctx, "Test"), rw, req, nil), nil
 }
 
 func privateKey(config token.ManagerConfiguration) (*rsa.PrivateKey, string, error) {
@@ -178,7 +154,7 @@ func privateKey(config token.ManagerConfiguration) (*rsa.PrivateKey, string, err
 // ServiceAsUser creates a new service and fill the context with input Identity
 func ServiceAsUser(serviceName string, identity *Identity, tm token.Manager, config token.ManagerConfiguration) (*goa.Service, error) {
 	svc := goa.New(serviceName)
-	ctx, err := EmbedUserTokenInContext(nil, identity, tm, config)
+	ctx, err := EmbedUserTokenInContext(context.Background(), identity, tm, config)
 	if err != nil {
 		return nil, err
 	}
@@ -189,14 +165,14 @@ func ServiceAsUser(serviceName string, identity *Identity, tm token.Manager, con
 // UnsecuredService creates a new service with token manager injected by without any identity in context
 func UnsecuredService(serviceName string, tm token.Manager) *goa.Service {
 	svc := goa.New(serviceName)
-	svc.Context = tokencontext.ContextWithTokenManager(svc.Context, tm)
+	svc.Context = token.ContextWithTokenManager(svc.Context, tm)
 	return svc
 }
 
 // ServiceAsServiceAccountUser generates the minimal service needed to satisfy the condition of being a service account.
 func ServiceAsServiceAccountUser(serviceName string, identity *Identity, tm token.Manager, config token.ManagerConfiguration) (*goa.Service, error) {
 	svc := goa.New(serviceName)
-	ctx, err := EmbedServiceAccountTokenInContext(nil, identity, tm, config)
+	ctx, err := EmbedServiceAccountTokenInContext(context.Background(), identity, tm, config)
 	if err != nil {
 		return nil, err
 	}

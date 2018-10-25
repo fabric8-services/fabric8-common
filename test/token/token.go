@@ -4,18 +4,14 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"time"
+
+	"github.com/fabric8-services/fabric8-common/test"
 
 	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/fabric8-services/fabric8-common/token"
-	"github.com/fabric8-services/fabric8-common/token/tokencontext"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/goadesign/goa"
-	"github.com/goadesign/goa/client"
 	jwtgoa "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
@@ -41,19 +37,19 @@ func (c *dummyConfig) GetAuthServiceURL() string    { return "https://auth.opens
 func (c *dummyConfig) GetDevModePrivateKey() []byte { return nil }
 
 // EmbedTokenInContext generates a token and embeds it into the context along with token manager
-func EmbedTokenInContext(sub, username string) (context.Context, string) {
+func EmbedTokenInContext(sub, username string) (context.Context, string, error) {
 	tokenString := GenerateToken(sub, username)
-
 	extracted, err := TokenManager.Parse(context.Background(), tokenString)
 	if err != nil {
-		panic(errors.WithStack(err))
+		return nil, "", err
 	}
-
 	// Embed Token in the context
 	ctx := jwtgoa.WithJWT(context.Background(), extracted)
-
-	ctx = ContextWithRequest(ctx)
-	return tokencontext.ContextWithTokenManager(ctx, TokenManager), tokenString
+	ctx, err = test.ContextWithRequest(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	return token.ContextWithTokenManager(ctx, TokenManager), tokenString, nil
 }
 
 // GenerateToken generates a JWT user token and signs it using the default private key
@@ -122,34 +118,4 @@ func GenerateTokenWithClaims(claims map[string]interface{}) string {
 		panic(errors.WithStack(err))
 	}
 	return tokenStr
-}
-
-func ContextWithRequest(ctx context.Context) context.Context {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	u := &url.URL{
-		Scheme: "https",
-		Host:   "auth.openshift.io",
-	}
-	rw := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		panic(errors.WithStack(err))
-	}
-	return goa.NewContext(goa.WithAction(ctx, "Test"), rw, req, url.Values{})
-}
-
-func ContextWithTokenAndRequestID() (context.Context, string, string, string) {
-	identityID := uuid.NewV4().String()
-	ctx, ctxToken := EmbedTokenInContext(identityID, uuid.NewV4().String())
-	ctx = tokencontext.ContextWithTokenManager(ctx, TokenManager)
-	reqID := uuid.NewV4().String()
-	ctx = client.SetContextRequestID(ctx, reqID)
-
-	return ctx, identityID, ctxToken, reqID
-}
-
-func ContextWithTokenManager() context.Context {
-	return tokencontext.ContextWithTokenManager(context.Background(), TokenManager)
 }
