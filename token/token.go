@@ -40,14 +40,25 @@ type ManagerConfiguration interface {
 
 // TokenClaims represents access token claims
 type TokenClaims struct {
-	Name          string `json:"name"`
-	Username      string `json:"preferred_username"`
-	GivenName     string `json:"given_name"`
-	FamilyName    string `json:"family_name"`
-	Email         string `json:"email"`
-	EmailVerified bool   `json:"email_verified"`
-	Company       string `json:"company"`
+	Name          string         `json:"name"`
+	Username      string         `json:"preferred_username"`
+	GivenName     string         `json:"given_name"`
+	FamilyName    string         `json:"family_name"`
+	Email         string         `json:"email"`
+	EmailVerified bool           `json:"email_verified"`
+	Company       string         `json:"company"`
+	SessionState  string         `json:"session_state"`
+	Approved      bool           `json:"approved"`
+	Permissions   *[]Permissions `json:"permissions"`
 	jwt.StandardClaims
+}
+
+// Permissions represents a "permissions" claim in the AuthorizationPayload
+type Permissions struct {
+	ResourceSetName *string  `json:"resource_set_name"`
+	ResourceSetID   *string  `json:"resource_set_id"`
+	Scopes          []string `json:"scopes"`
+	Expiry          int64    `json:"exp"`
 }
 
 // Parser parses a token and exposes the public keys for the Goa JWT middleware.
