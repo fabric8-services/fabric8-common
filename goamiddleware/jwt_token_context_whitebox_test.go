@@ -8,8 +8,8 @@ import (
 	"net/textproto"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/test/auth"
 	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
-	"github.com/fabric8-services/fabric8-common/test/token"
 
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +31,7 @@ func (s *TestJWTokenContextSuite) TestHandler() {
 
 	rw := httptest.NewRecorder()
 	rq := &http.Request{Header: make(map[string][]string)}
-	h := handler(token.TokenManager, schema, dummyHandler, errUnauthorized)
+	h := handler(auth.TokenManager, schema, dummyHandler, errUnauthorized)
 
 	err := h(context.Background(), rw, rq)
 	require.Error(s.T(), err)
@@ -60,7 +60,7 @@ func (s *TestJWTokenContextSuite) TestHandler() {
 
 	// OK if token is valid
 	rw = httptest.NewRecorder()
-	t := token.GenerateServiceAccountToken("sa-name")
+	t := auth.GenerateServiceAccountToken("sa-name")
 	rq.Header.Set("Authorization", "bearer "+t)
 	err = h(context.Background(), rw, rq)
 	require.Error(s.T(), err)
