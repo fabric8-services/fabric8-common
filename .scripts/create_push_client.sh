@@ -23,7 +23,8 @@ function generate_client_and_create_pr() {
     git checkout -b ${branch}
     cd -
     for i in $(find tool -name "*.go"); do
-        sed -i 's:"github.com/fabric8-services/fabric8-cluster/cluster":"github.com/fabric8-services/fabric8-cluster-client/cluster":' "$i";
+        sed -i 's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${PKG_NAME}'":"github.com/'${GHORG}'/'${GHREPO}'/'${PKG_NAME}'":' "$i";
+        sed -i 's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${TOOL_DIR}'":"github.com/'${GHORG}'/'${GHREPO}'/'${TOOL_DIR}'":' "$i";
     done
     rm -rf /tmp/${GHREPO}/cluster /tmp/${GHREPO}/tool
     cp -r cluster tool /tmp/${GHREPO}
@@ -66,6 +67,8 @@ function generate_client_setup() {
     SERVICE_NAME=${PWD##*/}
     GHORG=${1:-fabric8-services}
     GHREPO=${2:-${SERVICE_NAME}-client}
+    PKG_NAME=${3}
+    TOOL_DIR=${4:-tool/cli}
     LAST_USED_COMMIT=$(curl -s https://raw.githubusercontent.com/${GHORG}/${GHREPO}/master/source_commit.txt)
     LATEST_COMMIT=$(git rev-parse HEAD)
     if [[ $(git diff --reverse $LAST_USED_COMMIT..$LATEST_COMMIT design) ]]; then
