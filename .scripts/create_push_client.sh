@@ -65,10 +65,10 @@ EOF
 
 function generate_client_setup() {
     SERVICE_NAME=${PWD##*/}
-    GHORG=${1:-fabric8-services}
-    GHREPO=${2:-${SERVICE_NAME}-client}
-    PKG_NAME=${3}
-    TOOL_DIR=${4:-tool/cli}
+    PKG_NAME=${1}
+    TOOL_DIR=${2:-tool/cli}
+    GHORG=${3:-fabric8-services}
+    GHREPO=${4:-${SERVICE_NAME}-client}
     LAST_USED_COMMIT=$(curl -s https://raw.githubusercontent.com/${GHORG}/${GHREPO}/master/source_commit.txt)
     LATEST_COMMIT=$(git rev-parse HEAD)
     if [[ $(git diff --reverse $LAST_USED_COMMIT..$LATEST_COMMIT design) ]]; then
