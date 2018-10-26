@@ -7,9 +7,9 @@ import (
 
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/resource"
+	testtoken "github.com/fabric8-services/fabric8-common/test/auth"
 	testconfiguration "github.com/fabric8-services/fabric8-common/test/configuration"
 	"github.com/fabric8-services/fabric8-common/test/recorder"
-	testtoken "github.com/fabric8-services/fabric8-common/test/token"
 	"github.com/fabric8-services/fabric8-common/token/jwk"
 
 	"github.com/stretchr/testify/assert"

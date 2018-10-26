@@ -3,8 +3,8 @@ package configuration
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/configuration"
 	tokensupport "github.com/fabric8-services/fabric8-common/test/generated/token"
-	testkeys "github.com/fabric8-services/fabric8-common/test/keys"
 )
 
 // NewDefaultMockTokenManagerConfiguration initializes a new mock configuration for a token manager
@@ -16,7 +16,7 @@ func NewDefaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.Manager
 	}
 
 	config.GetDevModePrivateKeyFunc = func() []byte {
-		return []byte(testkeys.DevModePrivateKey)
+		return []byte(configuration.DevModeRsaPrivateKey)
 	}
 	return config
 }

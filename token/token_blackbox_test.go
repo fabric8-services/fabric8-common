@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	testsupport "github.com/fabric8-services/fabric8-common/test"
+	"github.com/fabric8-services/fabric8-common/test/auth"
 	testconfiguration "github.com/fabric8-services/fabric8-common/test/configuration"
 	tokensupport "github.com/fabric8-services/fabric8-common/test/generated/token"
 	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
@@ -156,8 +156,8 @@ func checkLoginRequiredHeader(t *testing.T, rw http.ResponseWriter) {
 
 func (s *TokenManagerTestSuite) TestParseValidTokenOK() {
 	// given
-	identity := testsupport.NewIdentity()
-	generatedToken, _, err := testsupport.GenerateSignedUserToken(identity, s.config)
+	identity := auth.NewIdentity()
+	generatedToken, _, err := auth.GenerateSignedUserToken(identity)
 	require.NoError(s.T(), err)
 
 	s.T().Run("parse token", func(t *testing.T) {
