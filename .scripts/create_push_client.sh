@@ -5,6 +5,7 @@ function git_configure_and_clone() {
     git config --global user.email fabric8cd@gmail.com
 
     set +x
+    rm -rf /tmp/${GHREPO}/
     echo git clone https://XXXX@github.com/${GHORG}/${GHREPO}.git --depth=1 /tmp/${GHREPO}
     git clone https://$(echo ${FABRIC8_HUB_TOKEN}|base64 --decode)@github.com/${GHORG}/${GHREPO}.git --depth=1 /tmp/${GHREPO}
     set -x
@@ -13,6 +14,7 @@ function git_configure_and_clone() {
 function generate_client_and_create_pr() {
     cwd=$(pwd)
     echo $cwd
+    rm -rf ${PKG_NAME} ${TOOL_DIR}
     make docker-generate-client
 
     local newVersion=${LATEST_COMMIT}
@@ -31,8 +33,8 @@ function generate_client_and_create_pr() {
     for i in $(find tool/cli cluster -name "*.go"); do
         sed -i 's:src/github.com/'${GHORG}'/'${SERVICE_NAME}':src/github.com/'${GHORG}'/'${GHREPO}':' "$i";
     done
-    rm -rf /tmp/${GHREPO}/cluster /tmp/${GHREPO}/tool
-    cp -r cluster tool /tmp/${GHREPO}
+    rm -rf /tmp/${GHREPO}/${PKG_NAME} /tmp/${GHREPO}/${TOOL_DIR}
+    cp -r ${PKG_NAME} ${TOOL_DIR} /tmp/${GHREPO}
     git rev-parse HEAD > /tmp/${GHREPO}/source_commit.txt
     cd /tmp/${GHREPO}
 
