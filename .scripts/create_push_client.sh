@@ -5,6 +5,7 @@ function git_configure_and_clone() {
     git config --global user.email fabric8cd@gmail.com
 
     set +x
+    rm -rf /tmp/${GHREPO}
     echo git clone https://XXXX@github.com/${GHORG}/${GHREPO}.git --depth=1 /tmp/${GHREPO}
     git clone https://$(echo ${FABRIC8_HUB_TOKEN}|base64 --decode)@github.com/${GHORG}/${GHREPO}.git --depth=1 /tmp/${GHREPO}
     set -x
@@ -13,6 +14,7 @@ function git_configure_and_clone() {
 function generate_client_and_create_pr() {
     cwd=$(pwd)
     echo $cwd
+    make clean-generated
     make docker-generate-client
 
     local newVersion=${LATEST_COMMIT}
