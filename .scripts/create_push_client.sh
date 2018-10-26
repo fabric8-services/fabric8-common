@@ -25,11 +25,11 @@ function generate_client_and_create_pr() {
     git checkout -b ${branch}
     cd -
     for i in $(find tool -name "*.go"); do
-        sed  's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${PKG_NAME}'":"github.com/'${GHORG}'/'${GHREPO}'/'${PKG_NAME}'":' "$i";
-        sed  's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${TOOL_DIR}'/cli":"github.com/'${GHORG}'/'${GHREPO}'/'${TOOL_DIR}'/cli":' "$i";
+        sed -i 's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${PKG_NAME}'":"github.com/'${GHORG}'/'${GHREPO}'/'${PKG_NAME}'":' "$i";
+        sed -i 's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${TOOL_DIR}'/cli":"github.com/'${GHORG}'/'${GHREPO}'/'${TOOL_DIR}'/cli":' "$i";
     done
     for i in $(find tool/cli cluster -name "*.go"); do
-        sed  's:src/github.com/'${GHORG}'/'${SERVICE_NAME}':src/github.com/'${GHORG}'/'${GHREPO}':' "$i";
+        sed -i 's:src/github.com/'${GHORG}'/'${SERVICE_NAME}':src/github.com/'${GHORG}'/'${GHREPO}':' "$i";
     done
     rm -rf /tmp/${GHREPO}/cluster /tmp/${GHREPO}/tool
     cp -r cluster tool /tmp/${GHREPO}
