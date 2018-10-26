@@ -33,10 +33,9 @@ function generate_client_and_create_pr() {
 
     git commit cluster tool source_commit.txt -m "${message}"
     git push -u origin ${branch}
-    cd - & rm -rf /tmp/${GHREPO}
 
     set +x
-    curl -i -s -X POST -L -H "Authorization: token $(echo ${FABRIC8_HUB_TOKEN}|base64 --decode)" \
+    curl -s -X POST -L -H "Authorization: token $(echo ${FABRIC8_HUB_TOKEN}|base64 --decode)" \
          -d "{\"title\": \"${message}\", \"body\": \"$(echo $body)\", \"base\":\"master\", \"head\":\"${branch}\"}" \
          https://api.github.com/repos/${GHORG}/${GHREPO}/pulls
     set -x
@@ -58,7 +57,7 @@ function pr_body() {
 EOF
 )
 
-    local commits=$(git log --pretty="**Commit:** https://github.com/${GHORG}/${GHREPO}/commit/%H<br>**Author:** %an (%ae)<br>**Date:** %aI<br><br>" --reverse ${LAST_USED_COMMIT}..${LATEST_COMMIT} design)
+    local commits=$(git log --pretty="**Commit:** https://github.com/${GHORG}/${GHREPO}/commit/%H<br>**Author:** %an (%ae)<br>**Date:** %ai<br><br>" --reverse ${LAST_USED_COMMIT}..${LATEST_COMMIT} design)
 
     echo $description$commits
 }
