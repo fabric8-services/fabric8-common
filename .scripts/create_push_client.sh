@@ -22,8 +22,9 @@ function generate_client_and_create_pr() {
     cd /tmp/${GHREPO}
     git checkout -b ${branch}
     cd -
-    for i in $(find tool -name "*.go"); do
+    for i in $(find tool cluster -name "*.go"); do
         sed -i 's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${PKG_NAME}'":"github.com/'${GHORG}'/'${GHREPO}'/'${PKG_NAME}'":' "$i";
+        sed -i 's:src/github.com/'${GHORG}'/'${SERVICE_NAME}':src/github.com/'${GHORG}'/'${GHREPO}':' "$i";
         sed -i 's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${TOOL_DIR}'/cli":"github.com/'${GHORG}'/'${GHREPO}'/'${TOOL_DIR}'/cli":' "$i";
     done
     rm -rf /tmp/${GHREPO}/cluster /tmp/${GHREPO}/tool
@@ -63,12 +64,11 @@ EOF
 }
 
 function generate_client_setup() {
-    SERVICE_NAME=${PWD##*/}
-
-    PKG_NAME=${1}               # Name of generated client Go package used in `goagen client --pkg PKG_NAME`
-    TOOL_DIR=${2:-tool}         # Name of generated tool directory used in `goagen client --tooldir TOOL_DIR`
-    GHORG=${3:-fabric8-services}
-    GHREPO=${4:-${SERVICE_NAME}-client}
+    SERVICE_NAME=${1}
+    PKG_NAME=${2}               # Name of generated client Go package used in `goagen client --pkg PKG_NAME`
+    TOOL_DIR=${3:-tool}         # Name of generated tool directory used in `goagen client --tooldir TOOL_DIR`
+    GHORG=${4:-fabric8-services}
+    GHREPO=${5:-${SERVICE_NAME}-client}
     LAST_USED_COMMIT=$(curl -s https://raw.githubusercontent.com/${GHORG}/${GHREPO}/master/source_commit.txt)
     LATEST_COMMIT=$(git rev-parse HEAD)
     if [[ $(git diff --reverse $LAST_USED_COMMIT..$LATEST_COMMIT design) ]]; then
