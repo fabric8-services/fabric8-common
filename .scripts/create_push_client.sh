@@ -33,7 +33,7 @@ function generate_client_and_create_pr() {
     cd /tmp/${GHREPO}
 
     git commit cluster tool source_commit.txt -m "${message}"
-    git push -u origin ${branch}
+    git push -q -u origin ${branch}
 
     set +x
     curl -s -X POST -L -H "Authorization: token $(echo ${FABRIC8_HUB_TOKEN}|base64 --decode)" \
