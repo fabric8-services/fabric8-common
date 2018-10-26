@@ -6,10 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-common/test"
-
 	"github.com/fabric8-services/fabric8-common/resource"
-	testtoken "github.com/fabric8-services/fabric8-common/test/token"
+	"github.com/fabric8-services/fabric8-common/test/auth"
 	"github.com/fabric8-services/fabric8-common/token"
 
 	"github.com/dgrijalva/jwt-go"
@@ -23,7 +21,7 @@ import (
 func withTokenManager() context.Context {
 	// this is just normal context object with no, token
 	// so this should fail saying no token available
-	return token.ContextWithTokenManager(context.Background(), testtoken.TokenManager)
+	return token.ContextWithTokenManager(context.Background(), auth.TokenManager)
 }
 
 func withIncompleteToken() context.Context {
@@ -35,7 +33,7 @@ func withIncompleteToken() context.Context {
 
 func withValidToken(t *testing.T, identityID string, identityUsername string) (context.Context, error) {
 	// Here we add a token that is perfectly valid
-	ctx, _, err := test.EmbedTokenInContext(identityID, identityUsername)
+	ctx, _, err := auth.EmbedTokenInContext(identityID, identityUsername)
 	return ctx, err
 }
 
