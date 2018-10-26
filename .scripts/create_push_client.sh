@@ -11,6 +11,8 @@ function git_configure_and_clone() {
 }
 
 function generate_client_and_create_pr() {
+    cwd=$(pwd)
+    echo $cwd
     make docker-generate-client
 
     local newVersion=${LATEST_COMMIT}
@@ -22,10 +24,12 @@ function generate_client_and_create_pr() {
     cd /tmp/${GHREPO}
     git checkout -b ${branch}
     cd -
-    for i in $(find tool cluster -name "*.go"); do
+    for i in $(find tool -name "*.go"); do
         sed -i 's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${PKG_NAME}'":"github.com/'${GHORG}'/'${GHREPO}'/'${PKG_NAME}'":' "$i";
-        sed -i 's:src/github.com/'${GHORG}'/'${SERVICE_NAME}':src/github.com/'${GHORG}'/'${GHREPO}':' "$i";
         sed -i 's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${TOOL_DIR}'/cli":"github.com/'${GHORG}'/'${GHREPO}'/'${TOOL_DIR}'/cli":' "$i";
+    done
+    for i in $(find tool/cli cluster -name "*.go"); do
+        sed -i 's:src/github.com/'${GHORG}'/'${SERVICE_NAME}':src/github.com/'${GHORG}'/'${GHREPO}':' "$i";
     done
     rm -rf /tmp/${GHREPO}/cluster /tmp/${GHREPO}/tool
     cp -r cluster tool /tmp/${GHREPO}
@@ -33,13 +37,15 @@ function generate_client_and_create_pr() {
     cd /tmp/${GHREPO}
 
     git commit cluster tool source_commit.txt -m "${message}"
-    git push -u origin ${branch}
+    git push -q -u origin ${branch}
 
     set +x
     curl -s -X POST -L -H "Authorization: token $(echo ${FABRIC8_HUB_TOKEN}|base64 --decode)" \
          -d "{\"title\": \"${message}\", \"body\": \"$(echo $body)\", \"base\":\"master\", \"head\":\"${branch}\"}" \
          https://api.github.com/repos/${GHORG}/${GHREPO}/pulls
     set -x
+    cd $cwd
+    echo $PWD
 }
 
 function pr_body() {
