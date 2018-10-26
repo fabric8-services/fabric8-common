@@ -66,8 +66,8 @@ EOF
 function generate_client_setup() {
     SERVICE_NAME=${PWD##*/}
 
-    PKG_NAME=${1}               # Name of generated client Go package used in goagen client --pkg PKG_NAME
-    TOOL_DIR=${2:-tool}         # Name of generated tool directory used in goagen client --tooldir TOOL_DIR
+    PKG_NAME=${1}               # Name of generated client Go package used in `goagen client --pkg PKG_NAME`
+    TOOL_DIR=${2:-tool}         # Name of generated tool directory used in `goagen client --tooldir TOOL_DIR`
     GHORG=${3:-fabric8-services}
     GHREPO=${4:-${SERVICE_NAME}-client}
     LAST_USED_COMMIT=$(curl -s https://raw.githubusercontent.com/${GHORG}/${GHREPO}/master/source_commit.txt)
