@@ -13,7 +13,6 @@ function git_configure_and_clone() {
 
 function generate_client_and_create_pr() {
     cwd=$(pwd)
-    echo $cwd
     rm -rf ${PKG_NAME} ${TOOL_DIR}
     make docker-generate-client
 
@@ -47,7 +46,6 @@ function generate_client_and_create_pr() {
          https://api.github.com/repos/${GHORG}/${GHREPO}/pulls
     set -x
     cd $cwd
-    echo $PWD
 }
 
 function pr_body() {
@@ -55,18 +53,14 @@ function pr_body() {
             **About**<br><br>
             This description was generated using following command:<br><br>
             \`\`\`
-
-            `echo GHORG=${GHORG} GHREPO=${GHREPO} LAST_USED_COMMIT=${LAST_USED_COMMIT} LATEST_COMMIT=${LATEST_COMMIT} \
-             git log --pretty="%n**Commit:** https://github.com/${GHORG}/${GHREPO}/commit/%H%n**Author:** %an (%ae)%n**Date:** %aI%n%n" --reverse ${LAST_USED_COMMIT}..${LATEST_COMMIT} design
-           `
-
+            `echo "git log --pretty=\"%n**Commit:** https://github.com/${GHORG}/${SERVICE_NAME}/commit/%H%n**Author:** %an (%ae)%n**Date:** %aI%n%n\" --reverse ${LAST_USED_COMMIT}..${LATEST_COMMIT} design"`
             \`\`\`
             <br><br>
             **Commits with change in Design Package**<br><br>
 EOF
 )
 
-    local commits=$(git log --pretty="**Commit:** https://github.com/${GHORG}/${GHREPO}/commit/%H<br>**Author:** %an (%ae)<br>**Date:** %ai<br><br>" --reverse ${LAST_USED_COMMIT}..${LATEST_COMMIT} design)
+    local commits=$(git log --pretty="**Commit:** https://github.com/${GHORG}/${SERVICE_NAME}/commit/%H<br>**Author:** %an (%ae)<br>**Date:** %ai<br><br>" --reverse ${LAST_USED_COMMIT}..${LATEST_COMMIT} design)
 
     echo $description$commits
 }
