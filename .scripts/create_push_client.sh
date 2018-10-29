@@ -41,7 +41,7 @@ function generate_client_and_create_pr() {
     git push -q -u origin ${branch}
 
     set +x
-    curl -s -X POST -L -H "Authorization: token $(echo ${FABRIC8_HUB_TOKEN}|base64 --decode)" \
+    curl -sS --fail -X POST -L -H "Authorization: token $(echo ${FABRIC8_HUB_TOKEN}|base64 --decode)" \
          -d "{\"title\": \"${message}\", \"body\": \"$(echo $body)\", \"base\":\"master\", \"head\":\"${branch}\"}" \
          https://api.github.com/repos/${GHORG}/${GHREPO}/pulls
     set -x
@@ -53,14 +53,13 @@ function pr_body() {
             **About**<br><br>
             This description was generated using following command:<br><br>
             \`\`\`
-            `echo "git log --pretty=\"%n**Commit:** https://github.com/${GHORG}/${SERVICE_NAME}/commit/%H%n**Author:** %an (%ae)%n**Date:** %aI%n%n\" --reverse ${LAST_USED_COMMIT}..${LATEST_COMMIT} design"`
+            `echo "git log --pretty='%n**Commit:** https://github.com/${GHORG}/${SERVICE_NAME}/commit/%H%n**Date:** %aI%n%n' --reverse ${LAST_USED_COMMIT}..${LATEST_COMMIT} design"`
             \`\`\`
             <br><br>
             **Commits with change in Design Package**<br><br>
 EOF
 )
-
-    local commits=$(git log --pretty="**Commit:** https://github.com/${GHORG}/${SERVICE_NAME}/commit/%H<br>**Author:** %an (%ae)<br>**Date:** %ai<br><br>" --reverse ${LAST_USED_COMMIT}..${LATEST_COMMIT} design)
+    local commits=$(git log --pretty="**Commit:** https://github.com/${GHORG}/${SERVICE_NAME}/commit/%H<br>**Date:** %ai<br><br>" --reverse ${LAST_USED_COMMIT}..${LATEST_COMMIT} design)
 
     echo $description$commits
 }
