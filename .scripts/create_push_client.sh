@@ -25,11 +25,11 @@ function generate_client_and_create_pr() {
     cd /tmp/${GHREPO}
     git checkout -b ${branch}
     cd -
-    for i in $(find tool -name "*.go"); do
+    for i in $(find ${TOOL_DIR} -name "*.go"); do
         sed -i 's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${PKG_NAME}'":"github.com/'${GHORG}'/'${GHREPO}'/'${PKG_NAME}'":' "$i";
         sed -i 's:"github.com/'${GHORG}'/'${SERVICE_NAME}'/'${TOOL_DIR}'/cli":"github.com/'${GHORG}'/'${GHREPO}'/'${TOOL_DIR}'/cli":' "$i";
     done
-    for i in $(find tool/cli cluster -name "*.go"); do
+    for i in $(find ${TOOL_DIR}/cli ${PKG_NAME} -name "*.go"); do
         sed -i 's:src/github.com/'${GHORG}'/'${SERVICE_NAME}':src/github.com/'${GHORG}'/'${GHREPO}':' "$i";
     done
     rm -rf /tmp/${GHREPO}/${PKG_NAME} /tmp/${GHREPO}/${TOOL_DIR}
@@ -37,7 +37,7 @@ function generate_client_and_create_pr() {
     git rev-parse HEAD > /tmp/${GHREPO}/source_commit.txt
     cd /tmp/${GHREPO}
 
-    git commit cluster tool source_commit.txt -m "${message}"
+    git commit ${PKG_NAME} ${TOOL_DIR} source_commit.txt -m "${message}"
     git push -q -u origin ${branch}
 
     set +x
