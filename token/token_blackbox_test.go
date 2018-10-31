@@ -20,6 +20,8 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/fabric8-services/fabric8-common/test/recorder"
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 )
 
 type TokenManagerTestSuite struct {
@@ -352,5 +354,56 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 		// then
 		require.Error(t, err)
 
+	})
+}
+
+type DummyConfig struct{
+	url string
+}
+
+func (c *DummyConfig) GetAuthServiceURL() string {
+	return c.url
+}
+
+func (s *TokenManagerTestSuite) TestServiceAccountToken() {
+	record, err := recorder.New("../test/data/exchange_token")
+	require.NoError(s.T(), err)
+	defer func() {
+		err := record.Stop()
+		require.NoError(s.T(), err)
+	}()
+
+	s.T().Run("ok", func(t *testing.T) {
+		config := &DummyConfig{"http://authservice"}
+
+		token, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+
+		require.NoError(t, err)
+		assert.NotEmpty(t, token)
+	})
+
+	s.T().Run("ok empty token", func(t *testing.T) {
+		config := &DummyConfig{"http://authservice.tokenempty"}
+
+		token, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+
+		require.Error(t, err)
+		assert.Empty(t, token)
+	})
+
+	s.T().Run("error", func(t *testing.T) {
+		config := &DummyConfig{"http://authservice.error"}
+		token, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+
+		require.Error(t, err)
+		assert.Empty(t, token)
+	})
+
+	s.T().Run("baq request", func(t *testing.T) {
+		config := &DummyConfig{"http://authservice.bad"}
+		token, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+
+		require.Error(t, err)
+		assert.Empty(t, token)
 	})
 }
