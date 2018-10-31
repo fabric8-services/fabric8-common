@@ -101,7 +101,6 @@ func AddTrailingSlashToURL(url string) string {
 	return url
 }
 
-
 // AddTrailingSlashToURL adds a trailing slash to the URL if it doesn't have it already
 // If URL is an empty string the function returns an empty string too
 func RemoveTrailingSlashToURL(url string) string {

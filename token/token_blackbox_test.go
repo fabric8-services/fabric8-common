@@ -16,12 +16,12 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-common/httpsupport"
+	"github.com/fabric8-services/fabric8-common/test/recorder"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/fabric8-services/fabric8-common/test/recorder"
-	"github.com/fabric8-services/fabric8-common/httpsupport"
 )
 
 type TokenManagerTestSuite struct {
@@ -357,7 +357,7 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 	})
 }
 
-type DummyConfig struct{
+type DummyConfig struct {
 	url string
 }
 

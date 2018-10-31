@@ -13,11 +13,11 @@ import (
 	"github.com/fabric8-services/fabric8-common/token/jwk"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-auth-client/auth"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
-	"github.com/fabric8-services/fabric8-auth-client/auth"
 	"net/url"
 )
 

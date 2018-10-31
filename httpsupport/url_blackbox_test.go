@@ -156,7 +156,6 @@ func TestAddTrailingSlashToURLSuccess(t *testing.T) {
 	})
 }
 
-
 func TestRemoveTrailingSlashToURLSuccess(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
