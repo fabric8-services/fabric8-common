@@ -357,11 +357,11 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 	})
 }
 
-type DummyConfig struct {
+type DummyAuthConfig struct {
 	url string
 }
 
-func (c *DummyConfig) GetAuthServiceURL() string {
+func (c *DummyAuthConfig) GetAuthServiceURL() string {
 	return c.url
 }
 
@@ -374,7 +374,7 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 	}()
 
 	s.T().Run("ok", func(t *testing.T) {
-		config := &DummyConfig{"http://authservice"}
+		config := &DummyAuthConfig{"http://authservice"}
 
 		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
 
@@ -384,16 +384,17 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 	})
 
 	s.T().Run("ok empty token", func(t *testing.T) {
-		config := &DummyConfig{"http://authservice.tokenempty"}
+		config := &DummyAuthConfig{"http://authservice.tokenempty"}
 
 		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
 
 		require.Error(t, err)
+		assert.Equal(t, "received empty token from server \"http://authservice.tokenempty\"", err.Error())
 		assert.Empty(t, saToken)
 	})
 
 	s.T().Run("error", func(t *testing.T) {
-		config := &DummyConfig{"http://authservice.error"}
+		config := &DummyAuthConfig{"http://authservice.error"}
 		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
 
 		require.Error(t, err)
@@ -402,7 +403,7 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 	})
 
 	s.T().Run("baq request", func(t *testing.T) {
-		config := &DummyConfig{"http://authservice.bad"}
+		config := &DummyAuthConfig{"http://authservice.bad"}
 		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
 
 		require.Error(t, err)
@@ -411,7 +412,7 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 	})
 
 	s.T().Run("unauthorized", func(t *testing.T) {
-		config := &DummyConfig{"http://authservice.unauthorized"}
+		config := &DummyAuthConfig{"http://authservice.unauthorized"}
 		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
 
 		require.Error(t, err)
