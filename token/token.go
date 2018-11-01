@@ -14,6 +14,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-auth-client/auth"
+	"github.com/fabric8-services/fabric8-common/goasupport"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
@@ -49,13 +50,13 @@ func DefaultManager(config ManagerConfiguration) (Manager, error) {
 	return defaultManager, defaultErr
 }
 
-type Configuration interface {
+type AuthServiceConfiguration interface {
 	GetAuthServiceURL() string
 }
 
 // ManagerConfiguration represents configuration needed to construct a token manager
 type ManagerConfiguration interface {
-	Configuration
+	AuthServiceConfiguration
 	GetDevModePrivateKey() []byte
 }
 
@@ -113,7 +114,7 @@ func NewManager(config ManagerConfiguration, options ...httpsupport.HTTPClientOp
 	}
 	tm.config = config
 
-	authURL := httpsupport.RemoveTrailingSlashToURL(config.GetAuthServiceURL())
+	authURL := httpsupport.RemoveTrailingSlashFromURL(config.GetAuthServiceURL())
 	keysEndpoint := fmt.Sprintf("%s%s", authURL, auth.KeysTokenPath())
 	remoteKeys, err := jwk.FetchKeys(keysEndpoint, options...)
 	if err != nil {
@@ -303,7 +304,7 @@ func CheckClaims(claims *TokenClaims) error {
 	return nil
 }
 
-func ServiceAccountToken(ctx context.Context, config Configuration, clientID, clientSecret string, options ...httpsupport.HTTPClientOption) (token string, err error) {
+func ServiceAccountToken(ctx context.Context, config AuthServiceConfiguration, clientID, clientSecret string, options ...httpsupport.HTTPClientOption) (string, error) {
 	authURL := config.GetAuthServiceURL()
 	u, err := url.Parse(authURL)
 	if err != nil {
@@ -328,33 +329,40 @@ func ServiceAccountToken(ctx context.Context, config Configuration, clientID, cl
 	}
 	contentType := "application/x-www-form-urlencoded"
 
-	res, err := client.ExchangeToken(ctx, path, payload, contentType)
+	res, err := client.ExchangeToken(goasupport.ForwardContextRequestID(ctx), path, payload, contentType)
 	if err != nil {
 		return "", errors.Wrapf(err, "error while doing the request")
 	}
-	defer func() {
-		httpsupport.CloseResponse(res)
-	}()
+	defer httpsupport.CloseResponse(res)
 
 	if res.StatusCode >= 400 {
+		var errDetails error
+		jsonErr, err := client.DecodeJSONAPIErrors(res)
+		if err == nil && len(jsonErr.Errors) > 0 {
+			errDetails = errs.FromStatusCode(res.StatusCode, jsonErr.Errors[0].Detail)
+		} else {
+			// if failed to decode the response body into a JSON-API error, or if the JSON-API error was empty
+			errDetails = errs.FromStatusCode(res.StatusCode, "unknown error")
+		}
 		log.Error(ctx, map[string]interface{}{
 			"response_status": res.Status,
 			"response_body":   res.Body,
 			"url":             authURL,
+			"detail":          errDetails,
 		}, "failed to obtain token from auth server")
-		return "", fmt.Errorf("failed to obtain token from auth server %q", authURL)
+		return "", errors.Wrapf(errDetails, "failed to obtain token from auth server %q", authURL)
 	}
 
-	oauthToken, err := client.DecodeOauthToken(res)
+	token, err := client.DecodeOauthToken(res)
 	if err != nil {
 		return "", errors.Wrapf(err, "error from server %q", authURL)
 	}
 
-	if oauthToken.AccessToken == nil || *oauthToken.AccessToken == "" {
+	if token.AccessToken == nil || *token.AccessToken == "" {
 		return "", fmt.Errorf("received empty token from server %q", authURL)
 	}
 
-	return *oauthToken.AccessToken, nil
+	return *token.AccessToken, nil
 }
 
 // InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.

@@ -101,9 +101,9 @@ func AddTrailingSlashToURL(url string) string {
 	return url
 }
 
-// AddTrailingSlashToURL adds a trailing slash to the URL if it doesn't have it already
+// RemoveTrailingSlashFromURL removes a trailing slash from URL if it does have it already
 // If URL is an empty string the function returns an empty string too
-func RemoveTrailingSlashToURL(url string) string {
+func RemoveTrailingSlashFromURL(url string) string {
 	if url != "" && strings.HasSuffix(url, "/") {
 		return url[:len(url)-1]
 	}

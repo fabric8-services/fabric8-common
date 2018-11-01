@@ -43,6 +43,16 @@ interactions:
   response:
     status: 500 Internal Server Error
     code: 500
+    body: '{
+              "errors":[
+                 {
+                    "code":"internal_server_error",
+                    "detail":"something went wrong",
+                    "status":"500",
+                    "title":"500 Internal Server Error"
+                 }
+              ]
+           }'
 - request:
     method: POST
     url: http://authservice.bad/api/token
@@ -55,3 +65,36 @@ interactions:
   response:
     status: 400 Bad Request
     code: 400
+    body: '{
+              "errors":[
+                 {
+                    "code":"bad_request",
+                    "detail":"[8sZ5BugD] 400 invalid_request: attribute \"grant_type\" of request is missing and required, attribute: grant_type, parent: request",
+                    "id":"hh5Zl9ru",
+                    "status":"400",
+                    "title":"Bad Request"
+                 }
+              ]
+           }'
+- request:
+    method: POST
+    url: http://authservice.unauthorized/api/token
+    body: '{
+        "grant_type":"client_credentials",
+        "client_id":"c211f1bd-17a7-4f8c-9f80-0917d167889d",
+        "client_secret":"dummy_service"
+      }'
+  response:
+  response:
+    status: 401 Unauthorized
+    code: 401
+    body: '{
+              "errors": [
+                  {
+                    "code":"unauthorized_error",
+                    "detail":"invalid Service Account ID or secret",
+                    "status":"401",
+                    "title":"Unauthorized error"
+                  }
+              ]
+          }'
