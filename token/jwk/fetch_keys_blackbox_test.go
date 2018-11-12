@@ -12,9 +12,9 @@ import (
 	"github.com/fabric8-services/fabric8-common/test/recorder"
 	"github.com/fabric8-services/fabric8-common/token/jwk"
 
+	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/fabric8-services/fabric8-common/configuration"
 )
 
 func TestFetchKeys(t *testing.T) {

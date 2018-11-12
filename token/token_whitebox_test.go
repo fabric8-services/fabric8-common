@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-common/configuration"
-	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
 	tokensupport "github.com/fabric8-services/fabric8-common/test/generated/token"
+	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
