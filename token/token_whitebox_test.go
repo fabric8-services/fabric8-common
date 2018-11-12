@@ -22,7 +22,7 @@ type TestWhiteboxTokenSuite struct {
 }
 
 func (s *TestWhiteboxTokenSuite) TestDefaultManager() {
-	config := NewDefaultMockTokenManagerConfiguration(s.T())
+	config := defaultMockTokenManagerConfiguration(s.T())
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth.prod-preview.openshift.io"
 	}
@@ -77,7 +77,7 @@ func assertDefaultManager(t *testing.T, config ManagerConfiguration) {
 
 func (s *TestWhiteboxTokenSuite) TestKeyLoaded() {
 	// given
-	config := NewDefaultMockTokenManagerConfiguration(s.T())
+	config := defaultMockTokenManagerConfiguration(s.T())
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth.prod-preview.openshift.io"
 	}
@@ -109,9 +109,7 @@ func (s *TestWhiteboxTokenSuite) TestKeyLoaded() {
 	})
 }
 
-// NewDefaultMockTokenManagerConfiguration initializes a new mock configuration for a token manager
-// functions can be overridden afterwards if needed
-func NewDefaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.ManagerConfigurationMock {
+func defaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.ManagerConfigurationMock {
 	config := tokensupport.NewManagerConfigurationMock(t)
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth.prod-preview.openshift.io"

@@ -26,7 +26,7 @@ func TestFetchKeys(t *testing.T) {
 		err := r.Stop()
 		require.NoError(t, err)
 	}()
-	config := NewDefaultMockTokenManagerConfiguration(t)
+	config := defaultMockTokenManagerConfiguration(t)
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth-ok"
 	}
@@ -68,9 +68,7 @@ func TestFetchKeys(t *testing.T) {
 
 }
 
-// NewDefaultMockTokenManagerConfiguration initializes a new mock configuration for a token manager
-// functions can be overridden afterwards if needed
-func NewDefaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.ManagerConfigurationMock {
+func defaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.ManagerConfigurationMock {
 	config := tokensupport.NewManagerConfigurationMock(t)
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth.prod-preview.openshift.io"

@@ -37,7 +37,7 @@ func TestRunTokenManagerTestSuite(t *testing.T) {
 func (s *TokenManagerTestSuite) SetupSuite() {
 	s.UnitTestSuite.SetupSuite()
 
-	s.config = NewDefaultMockTokenManagerConfiguration(s.T())
+	s.config = defaultMockTokenManagerConfiguration(s.T())
 	var err error
 	s.tm, err = token.NewManager(s.config)
 	require.NoError(s.T(), err)
@@ -182,7 +182,7 @@ func (s *TokenManagerTestSuite) TestParseValidTokenOK() {
 }
 
 func (s *TokenManagerTestSuite) TestAuthServiceURL() {
-	config := NewDefaultMockTokenManagerConfiguration(s.T())
+	config := defaultMockTokenManagerConfiguration(s.T())
 
 	s.T().Run("OK if auth URL does not have trailing slash", func(t *testing.T) {
 		config.GetAuthServiceURLFunc = func() string {
@@ -421,9 +421,7 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 	})
 }
 
-// NewDefaultMockTokenManagerConfiguration initializes a new mock configuration for a token manager
-// functions can be overridden afterwards if needed
-func NewDefaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.ManagerConfigurationMock {
+func defaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.ManagerConfigurationMock {
 	config := tokensupport.NewManagerConfigurationMock(t)
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth.prod-preview.openshift.io"
