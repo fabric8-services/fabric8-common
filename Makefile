@@ -272,6 +272,7 @@ CLEAN_TARGETS += clean-generated
 ## Removes all generated code.
 clean-generated:
 	-rm -f ./migration/sqlbindata_test.go
+	-rm -f ./test/generated/token/manager_configuration.go
 
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
