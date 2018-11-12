@@ -1,0 +1,3 @@
+run:
+  skip-files:
+    - test/configuration/token_manager_configuration.go
