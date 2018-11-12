@@ -1,5 +1,0 @@
-run:
-  skip-files:
-    - token/token_blackbox_test.go
-  skip-dirs:
-    - test/configuration
