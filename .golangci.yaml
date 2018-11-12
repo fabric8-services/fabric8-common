@@ -1,4 +1,5 @@
 run:
   skip-files:
-    - test/configuration/token_manager_configuration.go
     - token/token_blackbox_test.go
+  skip-dirs:
+    - test/configuration
