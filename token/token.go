@@ -13,10 +13,13 @@ import (
 	"github.com/fabric8-services/fabric8-common/token/jwk"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-auth-client/auth"
+	"github.com/fabric8-services/fabric8-common/goasupport"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
+	"net/url"
 )
 
 const (
@@ -47,9 +50,13 @@ func DefaultManager(config ManagerConfiguration) (Manager, error) {
 	return defaultManager, defaultErr
 }
 
+type AuthServiceConfiguration interface {
+	GetAuthServiceURL() string
+}
+
 // ManagerConfiguration represents configuration needed to construct a token manager
 type ManagerConfiguration interface {
-	GetAuthServiceURL() string
+	AuthServiceConfiguration
 	GetDevModePrivateKey() []byte
 }
 
@@ -107,9 +114,8 @@ func NewManager(config ManagerConfiguration, options ...httpsupport.HTTPClientOp
 	}
 	tm.config = config
 
-	authURL := httpsupport.AddTrailingSlashToURL(config.GetAuthServiceURL())
-	// TODO when we have a separate repo for Auth client we should use it to get the key path instead of hardcoding "api/token/keys"
-	keysEndpoint := fmt.Sprintf("%s%s", authURL, "api/token/keys")
+	authURL := httpsupport.RemoveTrailingSlashFromURL(config.GetAuthServiceURL())
+	keysEndpoint := fmt.Sprintf("%s%s", authURL, auth.KeysTokenPath())
 	remoteKeys, err := jwk.FetchKeys(keysEndpoint, options...)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
@@ -296,6 +302,67 @@ func CheckClaims(claims *TokenClaims) error {
 		return errors.New("email claim not found in token")
 	}
 	return nil
+}
+
+func ServiceAccountToken(ctx context.Context, config AuthServiceConfiguration, clientID, clientSecret string, options ...httpsupport.HTTPClientOption) (string, error) {
+	authURL := config.GetAuthServiceURL()
+	u, err := url.Parse(authURL)
+	if err != nil {
+		return "", err
+	}
+
+	httpClient := http.DefaultClient
+	for _, opt := range options {
+		opt(httpClient)
+	}
+
+	client := auth.New(&httpsupport.HTTPClientDoer{
+		HTTPClient: httpClient})
+	client.Host = u.Host
+	client.Scheme = u.Scheme
+
+	path := auth.ExchangeTokenPath()
+	payload := &auth.TokenExchange{
+		ClientID:     clientID,
+		ClientSecret: &clientSecret,
+		GrantType:    "client_credentials",
+	}
+	contentType := "application/x-www-form-urlencoded"
+
+	res, err := client.ExchangeToken(goasupport.ForwardContextRequestID(ctx), path, payload, contentType)
+	if err != nil {
+		return "", errors.Wrapf(err, "error while doing the request")
+	}
+	defer httpsupport.CloseResponse(res)
+
+	if res.StatusCode >= 400 {
+		var errDetails error
+		jsonErr, err := client.DecodeJSONAPIErrors(res)
+		if err == nil && len(jsonErr.Errors) > 0 {
+			errDetails = errs.FromStatusCode(res.StatusCode, jsonErr.Errors[0].Detail)
+		} else {
+			// if failed to decode the response body into a JSON-API error, or if the JSON-API error was empty
+			errDetails = errs.FromStatusCode(res.StatusCode, "unknown error")
+		}
+		log.Error(ctx, map[string]interface{}{
+			"response_status": res.Status,
+			"response_body":   res.Body,
+			"url":             authURL,
+			"detail":          errDetails,
+		}, "failed to obtain token from auth server")
+		return "", errors.Wrapf(errDetails, "failed to obtain token from auth server %q", authURL)
+	}
+
+	token, err := client.DecodeOauthToken(res)
+	if err != nil {
+		return "", errors.Wrapf(err, "error from server %q", authURL)
+	}
+
+	if token.AccessToken == nil || *token.AccessToken == "" {
+		return "", fmt.Errorf("received empty token from server %q", authURL)
+	}
+
+	return *token.AccessToken, nil
 }
 
 // InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.

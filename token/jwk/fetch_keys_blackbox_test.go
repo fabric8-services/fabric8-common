@@ -21,8 +21,10 @@ func TestFetchKeys(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	r, err := recorder.New("fetch_keys_blackbox_test")
 	require.NoError(t, err)
-	defer r.Stop()
-
+	defer func() {
+		err := r.Stop()
+		require.NoError(t, err)
+	}()
 	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth-ok"

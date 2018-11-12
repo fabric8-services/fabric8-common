@@ -76,6 +76,14 @@
   revision = "5637cf3d8a31b20882d79bd0e53a186d3821b155"
 
 [[projects]]
+  branch = "master"
+  digest = "1:67c8b413e64e3ae84fa491b73839b3928bda168777382c7adee86665e20547e0"
+  name = "github.com/fabric8-services/fabric8-auth-client"
+  packages = ["auth"]
+  pruneopts = "UT"
+  revision = "0eb93fc6cee1e202cb0f3ade92e99a2423b49283"
+
+[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -572,6 +580,7 @@
     "github.com/dgrijalva/jwt-go",
     "github.com/dnaeon/go-vcr/cassette",
     "github.com/dnaeon/go-vcr/recorder",
+    "github.com/fabric8-services/fabric8-auth-client/auth",
     "github.com/fzipp/gocyclo",
     "github.com/getsentry/raven-go",
     "github.com/goadesign/goa",

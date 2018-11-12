@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-common/httpsupport"
+	"github.com/fabric8-services/fabric8-common/test/recorder"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -352,5 +354,69 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 		// then
 		require.Error(t, err)
 
+	})
+}
+
+type DummyAuthConfig struct {
+	url string
+}
+
+func (c *DummyAuthConfig) GetAuthServiceURL() string {
+	return c.url
+}
+
+func (s *TokenManagerTestSuite) TestServiceAccountToken() {
+	record, err := recorder.New("../test/data/exchange_token")
+	require.NoError(s.T(), err)
+	defer func() {
+		err := record.Stop()
+		require.NoError(s.T(), err)
+	}()
+
+	s.T().Run("ok", func(t *testing.T) {
+		config := &DummyAuthConfig{"http://authservice"}
+
+		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+
+		require.NoError(t, err)
+		assert.NotEmpty(t, saToken)
+		assert.Equal(t, "jA0ECQMC5AvXo6Jyrj5g0kcBv6Qp8ZTWCgYD6TESuc2OxSDZ1lic1tmV6g4IcQUBlohjT3gyQX2oTa1bWfNkk8xY6wyPq8CUK3ReOnnDK/yo661f6LXgvA==", saToken)
+	})
+
+	s.T().Run("ok empty token", func(t *testing.T) {
+		config := &DummyAuthConfig{"http://authservice.tokenempty"}
+
+		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+
+		require.Error(t, err)
+		assert.Equal(t, "received empty token from server \"http://authservice.tokenempty\"", err.Error())
+		assert.Empty(t, saToken)
+	})
+
+	s.T().Run("error", func(t *testing.T) {
+		config := &DummyAuthConfig{"http://authservice.error"}
+		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+
+		require.Error(t, err)
+		assert.Equal(t, "failed to obtain token from auth server \"http://authservice.error\": something went wrong", err.Error())
+		assert.Empty(t, saToken)
+	})
+
+	s.T().Run("baq request", func(t *testing.T) {
+		config := &DummyAuthConfig{"http://authservice.bad"}
+		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+
+		require.Error(t, err)
+		assert.Equal(t, "failed to obtain token from auth server \"http://authservice.bad\": [8sZ5BugD] 400 invalid_request: attribute \"grant_type\" of request is missing and required, attribute: grant_type, parent: request", err.Error())
+		assert.Empty(t, saToken)
+	})
+
+	s.T().Run("unauthorized", func(t *testing.T) {
+		config := &DummyAuthConfig{"http://authservice.unauthorized"}
+		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+
+		require.Error(t, err)
+		assert.Equal(t, "failed to obtain token from auth server \"http://authservice.unauthorized\": invalid Service Account ID or secret", err.Error())
+		assert.Empty(t, saToken)
 	})
 }
