@@ -54,5 +54,11 @@ const (
 	BuildTime = "0"
 	// StartTime in ISO 8601 (UTC) format
 	StartTime = time.Now().UTC().Format("2006-01-02T15:04:05Z")
+	// The status of the used configuration. 'OK' or an error message if there is something wrong with the configuration used by service.
+	ConfigurationStatus string
+	// The status of Database connection. 'OK' or an error message is displayed.
+	DatabaseStatus string
+	// 'True' if the Developer Mode is enabled
+	DevMode *bool
 )`
 )
