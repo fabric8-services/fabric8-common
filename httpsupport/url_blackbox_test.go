@@ -155,3 +155,18 @@ func TestAddTrailingSlashToURLSuccess(t *testing.T) {
 		assert.Equal(t, "", httpsupport.AddTrailingSlashToURL(""))
 	})
 }
+
+func TestRemoveTrailingSlashFromURLSuccess(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+
+	t.Run("without slash", func(t *testing.T) {
+		assert.Equal(t, "https://openshift.io", httpsupport.RemoveTrailingSlashFromURL("https://openshift.io"))
+	})
+	t.Run("slash already exists", func(t *testing.T) {
+		assert.Equal(t, "https://openshift.io", httpsupport.RemoveTrailingSlashFromURL("https://openshift.io/"))
+	})
+	t.Run("empty URL", func(t *testing.T) {
+		assert.Equal(t, "", httpsupport.RemoveTrailingSlashFromURL(""))
+	})
+}
