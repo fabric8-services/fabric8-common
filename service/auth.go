@@ -36,12 +36,8 @@ type doer struct {
 }
 
 func (d *doer) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
-	fmt.Println("vn: in do, &ctx", &ctx)
-	fmt.Println("vn: in do, ctx", ctx)
 	token := jwt.ContextJWT(ctx)
-	fmt.Println("vn: in do, token:", token)
 	if token != nil {
-		fmt.Printf("vn: token.Raw:%s\n", token.Raw)
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token.Raw))
 	}
 	return d.target.Do(ctx, req)
@@ -52,10 +48,6 @@ type auth struct {
 }
 
 func (c *auth) CheckSpaceScope(ctx context.Context, spaceID, requiredScope string) (bool, error) {
-	fmt.Println("vn: in check, &ctx", &ctx)
-	fmt.Println("vn: in check, ctx", ctx)
-	token := jwt.ContextJWT(ctx)
-	fmt.Println("vn: in check, token:", token)
 	resp, err := c.Client.ScopesResource(ctx, authclient.ScopesResourcePath(spaceID))
 	if err != nil {
 		return false, err
