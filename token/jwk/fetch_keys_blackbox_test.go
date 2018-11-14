@@ -8,10 +8,11 @@ import (
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/resource"
 	testtoken "github.com/fabric8-services/fabric8-common/test/auth"
-	testconfiguration "github.com/fabric8-services/fabric8-common/test/configuration"
+	tokensupport "github.com/fabric8-services/fabric8-common/test/generated/token"
 	"github.com/fabric8-services/fabric8-common/test/recorder"
 	"github.com/fabric8-services/fabric8-common/token/jwk"
 
+	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +26,7 @@ func TestFetchKeys(t *testing.T) {
 		err := r.Stop()
 		require.NoError(t, err)
 	}()
-	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(t)
+	config := defaultMockTokenManagerConfiguration(t)
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth-ok"
 	}
@@ -65,4 +66,16 @@ func TestFetchKeys(t *testing.T) {
 		})
 	})
 
+}
+
+func defaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.ManagerConfigurationMock {
+	config := tokensupport.NewManagerConfigurationMock(t)
+	config.GetAuthServiceURLFunc = func() string {
+		return "https://auth.prod-preview.openshift.io"
+	}
+
+	config.GetDevModePrivateKeyFunc = func() []byte {
+		return []byte(configuration.DevModeRsaPrivateKey)
+	}
+	return config
 }
