@@ -152,7 +152,7 @@ build: deps generate
 	go build ./...
 
 .PHONY: generate
-generate: generate-mocks
+generate: generate-mocks migration/sqlbindata_test.go
 
 .PHONY: import
 ## import a pkg or a file from another repository, along with the commit history
@@ -238,9 +238,6 @@ ifndef DEP_BIN
 	$(error The "$(DEP_BIN_NAME)" executable could not be found in your PATH)
 endif
 
-.PHONY: generate
-generate: migration/sqlbindata_test.go
-
 migration/sqlbindata_test.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-test-files/*.sql)
 	$(GO_BINDATA_BIN) \
 		-o migration/sqlbindata_test.go \
@@ -272,6 +269,7 @@ CLEAN_TARGETS += clean-generated
 ## Removes all generated code.
 clean-generated:
 	-rm -f ./migration/sqlbindata_test.go
+	-rm -f ./test/generated/token/manager_configuration.go
 
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor

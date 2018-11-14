@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-common/configuration"
-	testcfg "github.com/fabric8-services/fabric8-common/test/configuration"
+	tokensupport "github.com/fabric8-services/fabric8-common/test/generated/token"
 	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +22,7 @@ type TestWhiteboxTokenSuite struct {
 }
 
 func (s *TestWhiteboxTokenSuite) TestDefaultManager() {
-	config := testcfg.NewDefaultMockTokenManagerConfiguration(s.T())
+	config := defaultMockTokenManagerConfiguration(s.T())
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth.prod-preview.openshift.io"
 	}
@@ -77,7 +77,7 @@ func assertDefaultManager(t *testing.T, config ManagerConfiguration) {
 
 func (s *TestWhiteboxTokenSuite) TestKeyLoaded() {
 	// given
-	config := testcfg.NewDefaultMockTokenManagerConfiguration(s.T())
+	config := defaultMockTokenManagerConfiguration(s.T())
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth.prod-preview.openshift.io"
 	}
@@ -107,4 +107,16 @@ func (s *TestWhiteboxTokenSuite) TestKeyLoaded() {
 		// then
 		assert.Nil(t, key)
 	})
+}
+
+func defaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.ManagerConfigurationMock {
+	config := tokensupport.NewManagerConfigurationMock(t)
+	config.GetAuthServiceURLFunc = func() string {
+		return "https://auth.prod-preview.openshift.io"
+	}
+
+	config.GetDevModePrivateKeyFunc = func() []byte {
+		return []byte(configuration.DevModeRsaPrivateKey)
+	}
+	return config
 }

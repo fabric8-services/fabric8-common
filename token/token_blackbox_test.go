@@ -9,13 +9,13 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-common/test/auth"
-	testconfiguration "github.com/fabric8-services/fabric8-common/test/configuration"
 	tokensupport "github.com/fabric8-services/fabric8-common/test/generated/token"
 	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
 	"github.com/fabric8-services/fabric8-common/token"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/test/recorder"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -37,7 +37,7 @@ func TestRunTokenManagerTestSuite(t *testing.T) {
 func (s *TokenManagerTestSuite) SetupSuite() {
 	s.UnitTestSuite.SetupSuite()
 
-	s.config = testconfiguration.NewDefaultMockTokenManagerConfiguration(s.T())
+	s.config = defaultMockTokenManagerConfiguration(s.T())
 	var err error
 	s.tm, err = token.NewManager(s.config)
 	require.NoError(s.T(), err)
@@ -182,7 +182,7 @@ func (s *TokenManagerTestSuite) TestParseValidTokenOK() {
 }
 
 func (s *TokenManagerTestSuite) TestAuthServiceURL() {
-	config := testconfiguration.NewDefaultMockTokenManagerConfiguration(s.T())
+	config := defaultMockTokenManagerConfiguration(s.T())
 
 	s.T().Run("OK if auth URL does not have trailing slash", func(t *testing.T) {
 		config.GetAuthServiceURLFunc = func() string {
@@ -419,4 +419,16 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 		assert.Equal(t, "failed to obtain token from auth server \"http://authservice.unauthorized\": invalid Service Account ID or secret", err.Error())
 		assert.Empty(t, saToken)
 	})
+}
+
+func defaultMockTokenManagerConfiguration(t *testing.T) *tokensupport.ManagerConfigurationMock {
+	config := tokensupport.NewManagerConfigurationMock(t)
+	config.GetAuthServiceURLFunc = func() string {
+		return "https://auth.prod-preview.openshift.io"
+	}
+
+	config.GetDevModePrivateKeyFunc = func() []byte {
+		return []byte(configuration.DevModeRsaPrivateKey)
+	}
+	return config
 }
