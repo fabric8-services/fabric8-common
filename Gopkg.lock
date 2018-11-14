@@ -553,6 +553,13 @@
   revision = "ffe88906718454e356e61776b54256e873fc133b"
 
 [[projects]]
+  digest = "1:f1e9221c1e17a438f8758d8da7be7ced1fc6132c4555d589d80f697d2cba7c8a"
+  name = "gopkg.in/h2non/gock.v1"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "v1.0.12"
+
+[[projects]]
   digest = "1:0f287957ae25f63e6a9fa361923581db8551e38d6b5e6c4f27e84607b3430889"
   name = "gopkg.in/square/go-jose.v2"
   packages = [
@@ -599,7 +606,6 @@
     "github.com/goadesign/goa/middleware",
     "github.com/goadesign/goa/middleware/security/jwt",
     "github.com/goadesign/goa/uuid",
-    "github.com/gojuno/minimock",
     "github.com/gojuno/minimock/cmd/minimock",
     "github.com/golang/lint/golint",
     "github.com/jinzhu/gorm",
@@ -616,6 +622,7 @@
     "github.com/stretchr/testify/require",
     "github.com/stretchr/testify/suite",
     "github.com/wadey/gocovmerge",
+    "gopkg.in/h2non/gock.v1",
     "gopkg.in/square/go-jose.v2",
     "gopkg.in/yaml.v2",
   ]

@@ -47,8 +47,8 @@ type auth struct {
 	*authclient.Client
 }
 
-func (c *auth) CheckSpaceScope(ctx context.Context, spaceID, requiredScope string) (bool, error) {
-	resp, err := c.Client.ScopesResource(ctx, authclient.ScopesResourcePath(spaceID))
+func (a *auth) CheckSpaceScope(ctx context.Context, spaceID, requiredScope string) (bool, error) {
+	resp, err := a.Client.ScopesResource(ctx, authclient.ScopesResourcePath(spaceID))
 	if err != nil {
 		return false, err
 	}
@@ -57,7 +57,7 @@ func (c *auth) CheckSpaceScope(ctx context.Context, spaceID, requiredScope strin
 	}
 
 	defer resp.Body.Close()
-	scopes, err := c.Client.DecodeResourceScopesData(resp)
+	scopes, _ := a.Client.DecodeResourceScopesData(resp)
 	for _, scope := range scopes.Data {
 		if requiredScope == scope.ID {
 			return true, nil
