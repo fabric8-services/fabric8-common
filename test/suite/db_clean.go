@@ -2,13 +2,12 @@ package suite
 
 import (
 	"database/sql"
-
-	"github.com/fabric8-services/fabric8-common/log"
-	uuid "github.com/satori/go.uuid"
-
 	"fmt"
 
+	"github.com/fabric8-services/fabric8-common/log"
+
 	"github.com/jinzhu/gorm"
+	"github.com/satori/go.uuid"
 )
 
 // DeleteCreatedEntities records all created entities on the gorm.DB connection
@@ -41,18 +40,22 @@ import (
 func DeleteCreatedEntities(db *gorm.DB) func() {
 	hookName := "mighti:record"
 	type entity struct {
-		table   string
-		keyname string
-		key     interface{}
+		table string
+		keys  map[string]interface{}
 	}
-	var entires []entity
+	var entities []entity
 	hookRegistered := db.Callback().Create().Get(hookName) != nil
 	if hookRegistered {
 		hookName += "-" + uuid.NewV4().String()
 	}
 	db.Callback().Create().After("gorm:create").Register(hookName, func(scope *gorm.Scope) {
-		log.Logger().Debugln(fmt.Sprintf("Inserted entities from %s with %s=%v", scope.TableName(), scope.PrimaryKey(), scope.PrimaryKeyValue()))
-		entires = append(entires, entity{table: scope.TableName(), keyname: scope.PrimaryKey(), key: scope.PrimaryKeyValue()})
+		fields := scope.PrimaryFields()
+		keys := make(map[string]interface{})
+		for _, field := range fields {
+			keys[field.DBName] = field.Field.Interface()
+		}
+		log.Logger().Debugln(fmt.Sprintf("Inserted entities from %s with keys %v", scope.TableName(), keys))
+		entities = append(entities, entity{table: scope.TableName(), keys: keys})
 	})
 	return func() {
 		defer db.Callback().Create().Remove(hookName)
@@ -62,20 +65,21 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		if !inTransaction {
 			tx = db.Begin()
 		}
-		for i := len(entires) - 1; i >= 0; i-- {
-			entry := entires[i]
+		for i := len(entities) - 1; i >= 0; i-- {
+			entity := entities[i]
 			log.Debug(nil, map[string]interface{}{
-				"table":     entry.table,
-				"key":       entry.key,
+				"table":     entity.table,
+				"keys":      entity.keys,
 				"hook_name": hookName,
-			}, "Deleting entities from '%s' table with key %v", entry.table, entry.key)
-			tx.Table(entry.table).Where(entry.keyname+" = ?", entry.key).Delete("")
+			}, "Deleting entities from '%s' table with keys %v", entity.table, entity.keys)
+			if len(entity.keys) == 0 {
+				log.Panic(nil, map[string]interface{}{
+					"table":     entity.table,
+					"hook_name": hookName,
+				}, "no primary keys found!!!")
+			}
+			tx.Table(entity.table).Where(entity.keys).Delete("")
 		}
-
-		// Delete the work item cache as well
-		// NOTE: Feel free to add more cache freeing calls here as needed.
-		// workitem.ClearGlobalWorkItemTypeCache()
-		// TODO: need a way to hook custom clean functions in here
 
 		if !inTransaction {
 			tx.Commit()
