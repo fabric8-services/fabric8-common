@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-common/test/suite"
 
 	"github.com/stretchr/testify/require"
@@ -36,9 +37,10 @@ type DBTestSuite struct {
 
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBTestSuite) SetupSuite() {
+	resource.Require(s.T(), resource.Database)
+
 	// Create test DB
 	dbConfig := postgresConfigString(false)
-	s.T().Logf("DB config string: %s", dbConfig)
 	var err error
 	s.db, err = sql.Open("postgres", dbConfig)
 	require.NoError(s.T(), err, "cannot connect to database: %s", dbName)
@@ -52,12 +54,12 @@ func (s *DBTestSuite) SetupSuite() {
 
 // TearDownSuite implements suite.TearDownAllSuite
 func (s *DBTestSuite) TearDownSuite() {
+	defer s.db.Close()
 	s.DBTestSuite.TearDownSuite()
 
 	// Drop test DB
 	_, err := s.db.Exec("DROP DATABASE IF EXISTS " + dbName)
 	require.NoError(s.T(), err, "failed to drop database '%s'", dbName)
-	s.db.Close()
 }
 
 type config struct {
