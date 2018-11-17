@@ -1,7 +1,6 @@
 package migration_test
 
 import (
-	"database/sql"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-common/internal"
@@ -23,7 +22,7 @@ func TestMigration(t *testing.T) {
 
 func (s *MigrationTestSuite) TestMigrate() {
 	s.T().Run("migration OK", func(t *testing.T) {
-		err := Migrate(s.DB.DB(), s.DBName)
+		err := migration.Migrate(s.DB.DB(), s.DBName, migrateData{})
 		require.NoError(t, err)
 
 		checkMigrate(t, s.DB, s.DB.Dialect())
@@ -78,10 +77,6 @@ func checkRollback(t *testing.T, gormDB *gorm.DB, dialect gorm.Dialect) {
 }
 
 type migrateData struct {
-}
-
-func Migrate(db *sql.DB, catalog string) error {
-	return migration.Migrate(db, catalog, migrateData{})
 }
 
 func (d migrateData) Asset(name string) ([]byte, error) {

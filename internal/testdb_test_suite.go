@@ -41,9 +41,7 @@ func (s *DBTestSuite) SetupSuite() {
 	s.db, err = sql.Open("postgres", dbConfig)
 	require.NoError(s.T(), err, "cannot connect to database: %s", dbName)
 	_, err = s.db.Exec("DROP DATABASE IF EXISTS " + dbName)
-	if err != nil {
-		require.NoError(s.T(), err, "failed to drop database '%s'", dbName)
-	}
+	require.NoError(s.T(), err, "failed to drop database '%s'", dbName)
 	_, err = s.db.Exec("CREATE DATABASE " + dbName)
 	require.NoError(s.T(), err, "failed to create database '%s'", dbName)
 
@@ -56,9 +54,7 @@ func (s *DBTestSuite) TearDownSuite() {
 
 	// Drop test DB
 	_, err := s.db.Exec("DROP DATABASE IF EXISTS " + dbName)
-	if err != nil {
-		require.NoError(s.T(), err, "failed to drop database '%s'", dbName)
-	}
+	require.NoError(s.T(), err, "failed to drop database '%s'", dbName)
 	s.db.Close()
 }
 
