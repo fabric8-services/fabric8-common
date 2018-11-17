@@ -1,4 +1,4 @@
-package migration_test
+package suite_test
 
 import "database/sql"
 import "github.com/fabric8-services/fabric8-common/migration"
