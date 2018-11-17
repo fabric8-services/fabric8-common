@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fabric8-services/fabric8-common/gormsupport"
 	"github.com/fabric8-services/fabric8-common/test/suite"
 
 	"github.com/stretchr/testify/require"
@@ -39,13 +38,12 @@ type DBTestSuite struct {
 func (s *DBTestSuite) SetupSuite() {
 	// Create test DB
 	dbConfig := postgresConfigString(false)
+	s.T().Logf("DB config string: %s", dbConfig)
 	var err error
 	s.db, err = sql.Open("postgres", dbConfig)
 	require.NoError(s.T(), err, "cannot connect to database: %s", dbName)
-	_, err = s.db.Exec("DROP DATABASE " + dbName)
-	if err != nil && !gormsupport.IsInvalidCatalogName(err) {
-		require.NoError(s.T(), err, "failed to drop database '%s'", dbName)
-	}
+	_, err = s.db.Exec("DROP DATABASE IF EXISTS " + dbName)
+	require.NoError(s.T(), err, "failed to drop database '%s'", dbName)
 	_, err = s.db.Exec("CREATE DATABASE " + dbName)
 	require.NoError(s.T(), err, "failed to create database '%s'", dbName)
 
@@ -57,10 +55,8 @@ func (s *DBTestSuite) TearDownSuite() {
 	s.DBTestSuite.TearDownSuite()
 
 	// Drop test DB
-	_, err := s.db.Exec("DROP DATABASE " + dbName)
-	if err != nil && !gormsupport.IsInvalidCatalogName(err) {
-		require.NoError(s.T(), err, "failed to drop database '%s'", dbName)
-	}
+	_, err := s.db.Exec("DROP DATABASE IF EXISTS " + dbName)
+	require.NoError(s.T(), err, "failed to drop database '%s'", dbName)
 	s.db.Close()
 }
 
