@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-auth-client/auth"
+	"github.com/fabric8-services/fabric8-common/errors"
 	"github.com/fabric8-services/fabric8-common/service"
 	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
 	uuid "github.com/satori/go.uuid"
@@ -34,39 +35,58 @@ func (s *AuthServiceTestSuite) SetupSuite() {
 	require.NoError(s.T(), err)
 }
 
-func (s *AuthServiceTestSuite) TestCheckSpaceScope() {
-	s.T().Run("scope_found_true", func(t *testing.T) {
-		spaceID := uuid.NewV4()
+func (s *AuthServiceTestSuite) TestCheckResourceScope() {
+	s.T().Run("scope_found_ok", func(t *testing.T) {
+		resID := uuid.NewV4()
 		gock.New(url).
-			Get(auth.ScopesResourcePath(spaceID.String())).
+			Get(auth.ScopesResourcePath(resID.String())).
 			Reply(200).
 			BodyString(`{"data":[{"id":"view","type":"user_resource_scope"},{"id":"contribute","type":"user_resource_scope"},{"id":"manage","type":"user_resource_scope"}]}`)
 
-		authZ, err := s.authService.CheckSpaceScope(context.Background(), spaceID.String(), "manage")
+		err := s.authService.RequireScope(context.Background(), resID.String(), "manage")
 		assert.NoError(t, err)
-		assert.True(t, authZ)
 	})
 
-	s.T().Run("scope_found_false", func(t *testing.T) {
-		spaceID := uuid.NewV4()
+	s.T().Run("scope_forbidden", func(t *testing.T) {
+		resID := uuid.NewV4()
 		gock.New(url).
-			Get(auth.ScopesResourcePath(spaceID.String())).
+			Get(auth.ScopesResourcePath(resID.String())).
 			Reply(200).
 			BodyString(`{"data":[{"id":"view","type":"user_resource_scope"},{"id":"contribute","type":"user_resource_scope"}]}`)
 
-		authZ, err := s.authService.CheckSpaceScope(context.Background(), spaceID.String(), "manage")
-		assert.NoError(t, err)
-		assert.False(t, authZ)
+		err := s.authService.RequireScope(context.Background(), resID.String(), "manage")
+		assert.Error(t, err)
+		_, ok := err.(errors.ForbiddenError)
+		assert.True(t, ok, "error is not forbidden error")
 	})
 
-	s.T().Run("call_unauthorized", func(t *testing.T) {
-		spaceID := uuid.NewV4()
+	s.T().Run("error_unauthorized", func(t *testing.T) {
+		resID := uuid.NewV4()
 		gock.New(url).
-			Get(auth.ScopesResourcePath(spaceID.String())).
+			Get(auth.ScopesResourcePath(resID.String())).
 			Reply(401)
 
-		authZ, err := s.authService.CheckSpaceScope(context.Background(), spaceID.String(), "manage")
+		err := s.authService.RequireScope(context.Background(), resID.String(), "manage")
 		assert.Error(t, err)
-		assert.False(t, authZ)
+	})
+
+	s.T().Run("error_internal_server", func(t *testing.T) {
+		resID := uuid.NewV4()
+		gock.New(url).
+			Get(auth.ScopesResourcePath(resID.String())).
+			Reply(500)
+
+		err := s.authService.RequireScope(context.Background(), resID.String(), "manage")
+		assert.Error(t, err)
+	})
+
+	s.T().Run("error_not_found", func(t *testing.T) {
+		resID := uuid.NewV4()
+		gock.New(url).
+			Get(auth.ScopesResourcePath(resID.String())).
+			Reply(404)
+
+		err := s.authService.RequireScope(context.Background(), resID.String(), "manage")
+		assert.Error(t, err)
 	})
 }

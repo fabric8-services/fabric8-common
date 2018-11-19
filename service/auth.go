@@ -7,13 +7,14 @@ import (
 	"net/url"
 
 	authclient "github.com/fabric8-services/fabric8-auth-client/auth"
+	"github.com/fabric8-services/fabric8-common/errors"
 	goaclient "github.com/goadesign/goa/client"
 	"github.com/goadesign/goa/middleware/security/jwt"
 	errs "github.com/pkg/errors"
 )
 
 type Auth interface {
-	CheckSpaceScope(ctx context.Context, spaceID, requiredScope string) (bool, error)
+	RequireScope(ctx context.Context, resourceID, requiredScope string) error
 }
 
 func NewAuthService(hostURL string) (Auth, error) {
@@ -47,21 +48,21 @@ type auth struct {
 	*authclient.Client
 }
 
-func (a *auth) CheckSpaceScope(ctx context.Context, spaceID, requiredScope string) (bool, error) {
-	resp, err := a.Client.ScopesResource(ctx, authclient.ScopesResourcePath(spaceID))
+func (a *auth) RequireScope(ctx context.Context, resourceID, requiredScope string) error {
+	resp, err := a.Client.ScopesResource(ctx, authclient.ScopesResourcePath(resourceID))
 	if err != nil {
-		return false, err
+		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return false, errs.Errorf("get space's scope failed with error '%s'", resp.Status)
+		return errs.Errorf("get space's scope failed with error '%s'", resp.Status)
 	}
 
 	defer resp.Body.Close()
 	scopes, _ := a.Client.DecodeResourceScopesData(resp)
 	for _, scope := range scopes.Data {
 		if requiredScope == scope.ID {
-			return true, nil
+			return nil
 		}
 	}
-	return false, nil
+	return errors.NewForbiddenError(fmt.Sprintf("missing required scope '%s' on '%s' resource", requiredScope, resourceID))
 }
