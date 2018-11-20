@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"time"
 
+	"github.com/fabric8-services/fabric8-common/auth"
 	"github.com/fabric8-services/fabric8-common/configuration"
-	"github.com/fabric8-services/fabric8-common/token"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -22,8 +22,8 @@ import (
 
 var TokenManager = newManager()
 
-func newManager() token.Manager {
-	return token.NewManagerWithPublicKey("test-key", &defaultPrivateKey().PublicKey, &defaultCfg{})
+func newManager() auth.Manager {
+	return auth.NewManagerWithPublicKey("test-key", &defaultPrivateKey().PublicKey, &defaultCfg{})
 }
 
 type defaultCfg struct{}
@@ -141,7 +141,7 @@ func embedTokenInContext(ctx context.Context, tk *jwt.Token) (context.Context, e
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	ctx = token.ContextWithTokenManager(ctx, TokenManager)
+	ctx = auth.ContextWithTokenManager(ctx, TokenManager)
 	ctx = jwtgoa.WithJWT(ctx, tk)
 	return ContextWithRequest(ctx)
 }
@@ -229,7 +229,7 @@ func ContextWithTokenAndRequestID() (context.Context, string, string, string, er
 	if err != nil {
 		return nil, "", "", "", err
 	}
-	ctx = token.ContextWithTokenManager(ctx, TokenManager)
+	ctx = auth.ContextWithTokenManager(ctx, TokenManager)
 	reqID := uuid.NewV4().String()
 	ctx = client.SetContextRequestID(ctx, reqID)
 	return ctx, identityID, ctxToken, reqID, nil
@@ -248,7 +248,7 @@ func EmbedTokenInContext(sub, username string) (context.Context, string, error) 
 	if err != nil {
 		return nil, "", err
 	}
-	return token.ContextWithTokenManager(ctx, TokenManager), tokenString, nil
+	return auth.ContextWithTokenManager(ctx, TokenManager), tokenString, nil
 }
 
 func defaultPrivateKey() *rsa.PrivateKey {
@@ -273,7 +273,7 @@ func ServiceAsUser(serviceName string, identity *Identity) (*goa.Service, error)
 // UnsecuredService creates a new service with token manager injected by without any identity in context
 func UnsecuredService(serviceName string) *goa.Service {
 	svc := goa.New(serviceName)
-	svc.Context = token.ContextWithTokenManager(svc.Context, TokenManager)
+	svc.Context = auth.ContextWithTokenManager(svc.Context, TokenManager)
 	return svc
 }
 

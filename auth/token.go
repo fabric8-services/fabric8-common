@@ -1,4 +1,4 @@
-package token
+package auth
 
 import (
 	"context"
@@ -7,19 +7,20 @@ import (
 	"net/http"
 	"sync"
 
+	authclient "github.com/fabric8-services/fabric8-auth-client/auth"
+	"github.com/fabric8-services/fabric8-common/auth/jwk"
 	errs "github.com/fabric8-services/fabric8-common/errors"
+	"github.com/fabric8-services/fabric8-common/goasupport"
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/log"
-	"github.com/fabric8-services/fabric8-common/token/jwk"
+
+	"net/url"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/fabric8-services/fabric8-auth-client/auth"
-	"github.com/fabric8-services/fabric8-common/goasupport"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
-	"net/url"
 )
 
 const (
@@ -115,7 +116,7 @@ func NewManager(config ManagerConfiguration, options ...httpsupport.HTTPClientOp
 	tm.config = config
 
 	authURL := httpsupport.RemoveTrailingSlashFromURL(config.GetAuthServiceURL())
-	keysEndpoint := fmt.Sprintf("%s%s", authURL, auth.KeysTokenPath())
+	keysEndpoint := fmt.Sprintf("%s%s", authURL, authclient.KeysTokenPath())
 	remoteKeys, err := jwk.FetchKeys(keysEndpoint, options...)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
@@ -316,13 +317,13 @@ func ServiceAccountToken(ctx context.Context, config AuthServiceConfiguration, c
 		opt(httpClient)
 	}
 
-	client := auth.New(&httpsupport.HTTPClientDoer{
+	client := authclient.New(&httpsupport.HTTPClientDoer{
 		HTTPClient: httpClient})
 	client.Host = u.Host
 	client.Scheme = u.Scheme
 
-	path := auth.ExchangeTokenPath()
-	payload := &auth.TokenExchange{
+	path := authclient.ExchangeTokenPath()
+	payload := &authclient.TokenExchange{
 		ClientID:     clientID,
 		ClientSecret: &clientSecret,
 		GrantType:    "client_credentials",

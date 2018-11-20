@@ -3,16 +3,15 @@ package jwk_test
 import (
 	"testing"
 
-	"github.com/fabric8-services/fabric8-common/token"
-
+	"github.com/fabric8-services/fabric8-common/auth"
+	"github.com/fabric8-services/fabric8-common/auth/jwk"
+	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-common/resource"
 	testtoken "github.com/fabric8-services/fabric8-common/test/auth"
 	tokensupport "github.com/fabric8-services/fabric8-common/test/generated/token"
 	"github.com/fabric8-services/fabric8-common/test/recorder"
-	"github.com/fabric8-services/fabric8-common/token/jwk"
 
-	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +29,7 @@ func TestFetchKeys(t *testing.T) {
 	config.GetAuthServiceURLFunc = func() string {
 		return "https://auth-ok"
 	}
-	tm, err := token.NewManager(config, httpsupport.WithRoundTripper(r))
+	tm, err := auth.NewManager(config, httpsupport.WithRoundTripper(r))
 	require.NoError(t, err)
 
 	t.Run("ok", func(t *testing.T) {

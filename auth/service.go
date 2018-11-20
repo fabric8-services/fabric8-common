@@ -1,4 +1,4 @@
-package service
+package auth
 
 import (
 	"context"
@@ -8,17 +8,17 @@ import (
 
 	authclient "github.com/fabric8-services/fabric8-auth-client/auth"
 	"github.com/fabric8-services/fabric8-common/errors"
+
 	goaclient "github.com/goadesign/goa/client"
 	"github.com/goadesign/goa/middleware/security/jwt"
-	errs "github.com/pkg/errors"
 )
 
-type Auth interface {
+type AuthService interface {
 	RequireScope(ctx context.Context, resourceID, requiredScope string) error
 }
 
-func NewAuthService(hostURL string) (Auth, error) {
-	u, err := url.Parse(hostURL)
+func NewAuthService(authURL string) (AuthService, error) {
+	u, err := url.Parse(authURL)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (a *auth) RequireScope(ctx context.Context, resourceID, requiredScope strin
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return errs.Errorf("get space's scope failed with error '%s'", resp.Status)
+		return errors.NewInternalErrorFromString(fmt.Sprintf("get space's scope failed with error '%s'", resp.Status))
 	}
 
 	defer resp.Body.Close()

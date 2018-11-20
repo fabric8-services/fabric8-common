@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/fabric8-services/fabric8-common/auth"
 	"github.com/fabric8-services/fabric8-common/log"
-	"github.com/fabric8-services/fabric8-common/token"
 
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware/security/jwt"
@@ -17,14 +17,14 @@ import (
 // Authorization header when possible. If the Authorization header is missing in the request,
 // no error is returned. However, if the Authorization header contains a
 // token, it will be stored it in the context.
-func TokenContext(tokenManager token.Manager, scheme *goa.JWTSecurity) goa.Middleware {
+func TokenContext(tokenManager auth.Manager, scheme *goa.JWTSecurity) goa.Middleware {
 	errUnauthorized := goa.NewErrorClass("token_validation_failed", 401)
 	return func(nextHandler goa.Handler) goa.Handler {
 		return handler(tokenManager, scheme, nextHandler, errUnauthorized)
 	}
 }
 
-func handler(tokenManager token.Manager, scheme *goa.JWTSecurity, nextHandler goa.Handler, errUnauthorized goa.ErrorClass) goa.Handler {
+func handler(tokenManager auth.Manager, scheme *goa.JWTSecurity, nextHandler goa.Handler, errUnauthorized goa.ErrorClass) goa.Handler {
 	return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
 		if scheme.In != goa.LocHeader {
 			log.Error(ctx, nil, fmt.Sprintf("security scheme with location (in) %q not supported", scheme.In))

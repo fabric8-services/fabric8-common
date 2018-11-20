@@ -6,9 +6,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/auth"
 	"github.com/fabric8-services/fabric8-common/resource"
-	"github.com/fabric8-services/fabric8-common/test/auth"
-	"github.com/fabric8-services/fabric8-common/token"
+	testauth "github.com/fabric8-services/fabric8-common/test/auth"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/raven-go"
@@ -21,7 +21,7 @@ import (
 func withTokenManager() context.Context {
 	// this is just normal context object with no, token
 	// so this should fail saying no token available
-	return token.ContextWithTokenManager(context.Background(), auth.TokenManager)
+	return auth.ContextWithTokenManager(context.Background(), testauth.TokenManager)
 }
 
 func withIncompleteToken() context.Context {
@@ -33,7 +33,7 @@ func withIncompleteToken() context.Context {
 
 func withValidToken(t *testing.T, identityID string, identityUsername string) (context.Context, error) {
 	// Here we add a token that is perfectly valid
-	ctx, _, err := auth.EmbedTokenInContext(identityID, identityUsername)
+	ctx, _, err := testauth.EmbedTokenInContext(identityID, identityUsername)
 	return ctx, err
 }
 
@@ -41,7 +41,7 @@ func TestExtractUserInfo(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	close, err := InitializeSentryClient(nil,
 		WithUser(func(ctx context.Context) (*raven.User, error) {
-			m, err := token.ReadManagerFromContext(ctx)
+			m, err := auth.ReadManagerFromContext(ctx)
 			if err != nil {
 				return nil, err
 			}

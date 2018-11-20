@@ -1,4 +1,4 @@
-package token_test
+package auth_test
 
 import (
 	"context"
@@ -8,25 +8,25 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-common/test/auth"
-	tokensupport "github.com/fabric8-services/fabric8-common/test/generated/token"
-	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
-	"github.com/fabric8-services/fabric8-common/token"
-	"github.com/stretchr/testify/suite"
-
-	"github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-common/auth"
 	"github.com/fabric8-services/fabric8-common/configuration"
 	"github.com/fabric8-services/fabric8-common/httpsupport"
+	testauth "github.com/fabric8-services/fabric8-common/test/auth"
+	tokensupport "github.com/fabric8-services/fabric8-common/test/generated/token"
 	"github.com/fabric8-services/fabric8-common/test/recorder"
+	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
+
+	"github.com/dgrijalva/jwt-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 type TokenManagerTestSuite struct {
 	testsuite.UnitTestSuite
-	tm     token.Manager
+	tm     auth.Manager
 	config *tokensupport.ManagerConfigurationMock
 }
 
@@ -39,7 +39,7 @@ func (s *TokenManagerTestSuite) SetupSuite() {
 
 	s.config = defaultMockTokenManagerConfiguration(s.T())
 	var err error
-	s.tm, err = token.NewManager(s.config)
+	s.tm, err = auth.NewManager(s.config)
 	require.NoError(s.T(), err)
 }
 
@@ -52,26 +52,26 @@ func (s *TokenManagerTestSuite) TestServiceAccount() {
 		claims["service_accountname"] = serviceName
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.True(t, token.IsServiceAccount(ctx))
+		assert.True(t, auth.IsServiceAccount(ctx))
 	})
 	s.T().Run("Missing name", func(t *testing.T) {
 		// given
 		claims := jwt.MapClaims{}
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.False(t, token.IsServiceAccount(ctx))
+		assert.False(t, auth.IsServiceAccount(ctx))
 	})
 	s.T().Run("Missing token", func(t *testing.T) {
 		// given
 		ctx := context.Background()
 		// then
-		assert.False(t, token.IsServiceAccount(ctx))
+		assert.False(t, auth.IsServiceAccount(ctx))
 	})
 	s.T().Run("Nil token", func(t *testing.T) {
 		// given
 		ctx := goajwt.WithJWT(context.Background(), nil)
 		// then
-		assert.False(t, token.IsServiceAccount(ctx))
+		assert.False(t, auth.IsServiceAccount(ctx))
 	})
 	s.T().Run("Wrong data type", func(t *testing.T) {
 		// given
@@ -79,7 +79,7 @@ func (s *TokenManagerTestSuite) TestServiceAccount() {
 		claims["service_accountname"] = 100
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.False(t, token.IsServiceAccount(ctx))
+		assert.False(t, auth.IsServiceAccount(ctx))
 	})
 }
 
@@ -91,20 +91,20 @@ func (s *TokenManagerTestSuite) TestSpecificServiceAccount() {
 		claims["service_accountname"] = serviceName
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.True(t, token.IsSpecificServiceAccount(ctx, "dummy-service", serviceName))
+		assert.True(t, auth.IsSpecificServiceAccount(ctx, "dummy-service", serviceName))
 	})
 	s.T().Run("Missing name", func(t *testing.T) {
 		// given
 		claims := jwt.MapClaims{}
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.False(t, token.IsSpecificServiceAccount(ctx, serviceName))
+		assert.False(t, auth.IsSpecificServiceAccount(ctx, serviceName))
 	})
 	s.T().Run("Nil token", func(t *testing.T) {
 		// given
 		ctx := goajwt.WithJWT(context.Background(), nil)
 		// then
-		assert.False(t, token.IsSpecificServiceAccount(ctx, serviceName))
+		assert.False(t, auth.IsSpecificServiceAccount(ctx, serviceName))
 	})
 	s.T().Run("Wrong data type", func(t *testing.T) {
 		// given
@@ -112,13 +112,13 @@ func (s *TokenManagerTestSuite) TestSpecificServiceAccount() {
 		claims["service_accountname"] = 100
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.False(t, token.IsSpecificServiceAccount(ctx, serviceName))
+		assert.False(t, auth.IsSpecificServiceAccount(ctx, serviceName))
 	})
 	s.T().Run("Missing token", func(t *testing.T) {
 		// given
 		ctx := context.Background()
 		// then
-		assert.False(t, token.IsSpecificServiceAccount(ctx, serviceName))
+		assert.False(t, auth.IsSpecificServiceAccount(ctx, serviceName))
 	})
 	s.T().Run("Wrong name", func(t *testing.T) {
 		// given
@@ -126,7 +126,7 @@ func (s *TokenManagerTestSuite) TestSpecificServiceAccount() {
 		claims["service_accountname"] = serviceName + "_asdsa"
 		ctx := goajwt.WithJWT(context.Background(), jwt.NewWithClaims(jwt.SigningMethodRS512, claims))
 		// then
-		assert.False(t, token.IsSpecificServiceAccount(ctx, serviceName))
+		assert.False(t, auth.IsSpecificServiceAccount(ctx, serviceName))
 	})
 }
 
@@ -158,8 +158,8 @@ func checkLoginRequiredHeader(t *testing.T, rw http.ResponseWriter) {
 
 func (s *TokenManagerTestSuite) TestParseValidTokenOK() {
 	// given
-	identity := auth.NewIdentity()
-	generatedToken, _, err := auth.GenerateSignedUserToken(identity)
+	identity := testauth.NewIdentity()
+	generatedToken, _, err := testauth.GenerateSignedUserToken(identity)
 	require.NoError(s.T(), err)
 
 	s.T().Run("parse token", func(t *testing.T) {
@@ -188,7 +188,7 @@ func (s *TokenManagerTestSuite) TestAuthServiceURL() {
 		config.GetAuthServiceURLFunc = func() string {
 			return "https://auth.prod-preview.openshift.io"
 		}
-		tm, err := token.NewManager(config)
+		tm, err := auth.NewManager(config)
 		require.NoError(t, err)
 		assert.Len(t, tm.PublicKeys(), 3)
 	})
@@ -197,7 +197,7 @@ func (s *TokenManagerTestSuite) TestAuthServiceURL() {
 		config.GetAuthServiceURLFunc = func() string {
 			return "https://auth.prod-preview.openshift.io/"
 		}
-		tm, err := token.NewManager(config)
+		tm, err := auth.NewManager(config)
 		require.NoError(t, err)
 		assert.Len(t, tm.PublicKeys(), 3)
 	})
@@ -206,7 +206,7 @@ func (s *TokenManagerTestSuite) TestAuthServiceURL() {
 		config.GetAuthServiceURLFunc = func() string {
 			return "https://somedomain.com/"
 		}
-		_, err := token.NewManager(config)
+		_, err := auth.NewManager(config)
 		require.Error(t, err)
 	})
 }
@@ -245,7 +245,7 @@ func (s *TokenManagerTestSuite) TestParseToken() {
 
 }
 
-func checkInvalidToken(t *testing.T, tm token.Manager, token, expectedError string) {
+func checkInvalidToken(t *testing.T, tm auth.Manager, token, expectedError string) {
 	_, err := tm.ParseToken(context.Background(), token)
 	require.Error(t, err)
 	assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(expectedError))
@@ -257,7 +257,7 @@ func checkInvalidToken(t *testing.T, tm token.Manager, token, expectedError stri
 	assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(expectedError))
 }
 
-func checkValidToken(t *testing.T, tm token.Manager, token string) {
+func checkValidToken(t *testing.T, tm auth.Manager, token string) {
 	_, err := tm.ParseToken(context.Background(), token)
 	assert.NoError(t, err)
 	_, err = tm.ParseTokenWithMapClaims(context.Background(), token)
@@ -268,13 +268,13 @@ func checkValidToken(t *testing.T, tm token.Manager, token string) {
 
 func (s *TokenManagerTestSuite) TestCheckClaimsOK() {
 	// given
-	claims := &token.TokenClaims{
+	claims := &auth.TokenClaims{
 		Email:    "somemail@domain.com",
 		Username: "testuser",
 	}
 	claims.Subject = uuid.NewV4().String()
 	// when
-	err := token.CheckClaims(claims)
+	err := auth.CheckClaims(claims)
 	// then
 	assert.NoError(s.T(), err)
 }
@@ -282,32 +282,32 @@ func (s *TokenManagerTestSuite) TestCheckClaimsOK() {
 func (s *TokenManagerTestSuite) TestCheckClaimsFails() {
 	s.T().Run("no email", func(t *testing.T) {
 		// given
-		claimsNoEmail := &token.TokenClaims{
+		claimsNoEmail := &auth.TokenClaims{
 			Username: "testuser",
 		}
 		claimsNoEmail.Subject = uuid.NewV4().String()
 		// then
-		assert.NotNil(t, token.CheckClaims(claimsNoEmail))
+		assert.NotNil(t, auth.CheckClaims(claimsNoEmail))
 	})
 
 	s.T().Run("no username", func(t *testing.T) {
 		// given
-		claimsNoUsername := &token.TokenClaims{
+		claimsNoUsername := &auth.TokenClaims{
 			Email: "somemail@domain.com",
 		}
 		claimsNoUsername.Subject = uuid.NewV4().String()
 		// then
-		assert.NotNil(t, token.CheckClaims(claimsNoUsername))
+		assert.NotNil(t, auth.CheckClaims(claimsNoUsername))
 	})
 
 	s.T().Run("no subject", func(t *testing.T) {
 		// given
-		claimsNoSubject := &token.TokenClaims{
+		claimsNoSubject := &auth.TokenClaims{
 			Email:    "somemail@domain.com",
 			Username: "testuser",
 		}
 		// then
-		assert.NotNil(t, token.CheckClaims(claimsNoSubject))
+		assert.NotNil(t, auth.CheckClaims(claimsNoSubject))
 	})
 }
 
@@ -376,7 +376,7 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 	s.T().Run("ok", func(t *testing.T) {
 		config := &DummyAuthConfig{"http://authservice"}
 
-		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+		saToken, err := auth.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, saToken)
@@ -386,7 +386,7 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 	s.T().Run("ok empty token", func(t *testing.T) {
 		config := &DummyAuthConfig{"http://authservice.tokenempty"}
 
-		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+		saToken, err := auth.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
 
 		require.Error(t, err)
 		assert.Equal(t, "received empty token from server \"http://authservice.tokenempty\"", err.Error())
@@ -395,7 +395,7 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 
 	s.T().Run("error", func(t *testing.T) {
 		config := &DummyAuthConfig{"http://authservice.error"}
-		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+		saToken, err := auth.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
 
 		require.Error(t, err)
 		assert.Equal(t, "failed to obtain token from auth server \"http://authservice.error\": something went wrong", err.Error())
@@ -404,7 +404,7 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 
 	s.T().Run("baq request", func(t *testing.T) {
 		config := &DummyAuthConfig{"http://authservice.bad"}
-		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+		saToken, err := auth.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
 
 		require.Error(t, err)
 		assert.Equal(t, "failed to obtain token from auth server \"http://authservice.bad\": [8sZ5BugD] 400 invalid_request: attribute \"grant_type\" of request is missing and required, attribute: grant_type, parent: request", err.Error())
@@ -413,7 +413,7 @@ func (s *TokenManagerTestSuite) TestServiceAccountToken() {
 
 	s.T().Run("unauthorized", func(t *testing.T) {
 		config := &DummyAuthConfig{"http://authservice.unauthorized"}
-		saToken, err := token.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
+		saToken, err := auth.ServiceAccountToken(context.Background(), config, "c211f1bd-17a7-4f8c-9f80-0917d167889d", "dummy_service", httpsupport.WithRoundTripper(record))
 
 		require.Error(t, err)
 		assert.Equal(t, "failed to obtain token from auth server \"http://authservice.unauthorized\": invalid Service Account ID or secret", err.Error())
