@@ -8,9 +8,9 @@ import (
 
 	authclient "github.com/fabric8-services/fabric8-auth-client/auth"
 	"github.com/fabric8-services/fabric8-common/errors"
+	"github.com/fabric8-services/fabric8-common/goasupport"
 
 	goaclient "github.com/goadesign/goa/client"
-	"github.com/goadesign/goa/middleware/security/jwt"
 )
 
 type AuthService interface {
@@ -23,33 +23,16 @@ func NewAuthService(authURL string) (AuthService, error) {
 		return nil, err
 	}
 
-	client := http.Client{}
-	c := authclient.New(&doer{
-		target: goaclient.HTTPClientDoer(&client),
-	})
-	c.Host = u.Host
-	c.Scheme = u.Scheme
-	return &auth{c}, nil
-}
-
-type doer struct {
-	target goaclient.Doer
-}
-
-func (d *doer) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
-	token := jwt.ContextJWT(ctx)
-	if token != nil {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token.Raw))
-	}
-	return d.target.Do(ctx, req)
+	return &auth{u}, nil
 }
 
 type auth struct {
-	*authclient.Client
+	authURL *url.URL
 }
 
 func (a *auth) RequireScope(ctx context.Context, resourceID, requiredScope string) error {
-	resp, err := a.Client.ScopesResource(ctx, authclient.ScopesResourcePath(resourceID))
+	client := a.createClient(ctx)
+	resp, err := client.ScopesResource(goasupport.ForwardContextRequestID(ctx), authclient.ScopesResourcePath(resourceID))
 	if err != nil {
 		return err
 	}
@@ -58,11 +41,19 @@ func (a *auth) RequireScope(ctx context.Context, resourceID, requiredScope strin
 	}
 
 	defer resp.Body.Close()
-	scopes, _ := a.Client.DecodeResourceScopesData(resp)
+	scopes, _ := client.DecodeResourceScopesData(resp)
 	for _, scope := range scopes.Data {
 		if requiredScope == scope.ID {
 			return nil
 		}
 	}
 	return errors.NewForbiddenError(fmt.Sprintf("missing required scope '%s' on '%s' resource", requiredScope, resourceID))
+}
+
+func (a *auth) createClient(ctx context.Context) *authclient.Client {
+	c := authclient.New(goaclient.HTTPClientDoer(http.DefaultClient))
+	c.Host = a.authURL.Host
+	c.Scheme = a.authURL.Scheme
+	c.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	return c
 }

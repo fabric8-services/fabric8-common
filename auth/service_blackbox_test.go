@@ -1,13 +1,13 @@
 package auth_test
 
 import (
-	"context"
 	"testing"
 
 	authclient "github.com/fabric8-services/fabric8-auth-client/auth"
 	"github.com/fabric8-services/fabric8-common/auth"
 	"github.com/fabric8-services/fabric8-common/errors"
 	testsupport "github.com/fabric8-services/fabric8-common/test"
+	testauth "github.com/fabric8-services/fabric8-common/test/auth"
 	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
 
 	"github.com/satori/go.uuid"
@@ -41,14 +41,19 @@ func (s *AuthServiceTestSuite) TearDownSuite() {
 }
 
 func (s *AuthServiceTestSuite) TestCheckResourceScope() {
+	ctx, _, token, requestID, err := testauth.ContextWithTokenAndRequestID()
+	require.NoError(s.T(), err)
+
 	s.T().Run("scope_found_ok", func(t *testing.T) {
 		resID := uuid.NewV4()
 		gock.New(url).
 			Get(authclient.ScopesResourcePath(resID.String())).
+			MatchHeader("Authorization", "Bearer "+token).
+			MatchHeader("X-Request-Id", requestID).
 			Reply(200).
 			BodyString(`{"data":[{"id":"view","type":"user_resource_scope"},{"id":"contribute","type":"user_resource_scope"},{"id":"manage","type":"user_resource_scope"}]}`)
 
-		err := s.authService.RequireScope(context.Background(), resID.String(), "manage")
+		err := s.authService.RequireScope(ctx, resID.String(), "manage")
 		assert.NoError(t, err)
 	})
 
@@ -56,10 +61,12 @@ func (s *AuthServiceTestSuite) TestCheckResourceScope() {
 		resID := uuid.NewV4()
 		gock.New(url).
 			Get(authclient.ScopesResourcePath(resID.String())).
+			MatchHeader("Authorization", "Bearer "+token).
+			MatchHeader("X-Request-Id", requestID).
 			Reply(200).
 			BodyString(`{"data":[{"id":"view","type":"user_resource_scope"},{"id":"contribute","type":"user_resource_scope"}]}`)
 
-		err := s.authService.RequireScope(context.Background(), resID.String(), "manage")
+		err := s.authService.RequireScope(ctx, resID.String(), "manage")
 		testsupport.AssertError(s.T(), err, errors.ForbiddenError{}, "missing required scope 'manage' on '%s' resource", resID)
 	})
 
@@ -67,9 +74,11 @@ func (s *AuthServiceTestSuite) TestCheckResourceScope() {
 		resID := uuid.NewV4()
 		gock.New(url).
 			Get(authclient.ScopesResourcePath(resID.String())).
+			MatchHeader("Authorization", "Bearer "+token).
+			MatchHeader("X-Request-Id", requestID).
 			Reply(401)
 
-		err := s.authService.RequireScope(context.Background(), resID.String(), "manage")
+		err := s.authService.RequireScope(ctx, resID.String(), "manage")
 		testsupport.AssertError(s.T(), err, errors.InternalError{}, "get space's scope failed with error '401 Unauthorized'")
 	})
 
@@ -77,9 +86,11 @@ func (s *AuthServiceTestSuite) TestCheckResourceScope() {
 		resID := uuid.NewV4()
 		gock.New(url).
 			Get(authclient.ScopesResourcePath(resID.String())).
+			MatchHeader("Authorization", "Bearer "+token).
+			MatchHeader("X-Request-Id", requestID).
 			Reply(500)
 
-		err := s.authService.RequireScope(context.Background(), resID.String(), "manage")
+		err := s.authService.RequireScope(ctx, resID.String(), "manage")
 		testsupport.AssertError(s.T(), err, errors.InternalError{}, "get space's scope failed with error '500 Internal Server Error'")
 	})
 
@@ -87,9 +98,11 @@ func (s *AuthServiceTestSuite) TestCheckResourceScope() {
 		resID := uuid.NewV4()
 		gock.New(url).
 			Get(authclient.ScopesResourcePath(resID.String())).
+			MatchHeader("Authorization", "Bearer "+token).
+			MatchHeader("X-Request-Id", requestID).
 			Reply(404)
 
-		err := s.authService.RequireScope(context.Background(), resID.String(), "manage")
+		err := s.authService.RequireScope(ctx, resID.String(), "manage")
 		testsupport.AssertError(s.T(), err, errors.InternalError{}, "get space's scope failed with error '404 Not Found'")
 	})
 }
