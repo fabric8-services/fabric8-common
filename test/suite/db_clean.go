@@ -2,13 +2,13 @@ package suite
 
 import (
 	"database/sql"
-
-	"github.com/fabric8-services/fabric8-common/log"
-	uuid "github.com/satori/go.uuid"
-
 	"fmt"
 
+	"github.com/fabric8-services/fabric8-common/log"
+
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
+	"github.com/satori/go.uuid"
 )
 
 // DeleteCreatedEntities records all created entities on the gorm.DB connection
@@ -38,47 +38,64 @@ import (
 // 2017/01/31 12:08:08 Deleting from x 6d143405-1232-40de-bc73-835b543cd972
 // 2017/01/31 12:08:08 Deleting from x 0685068d-4934-4d9a-bac2-91eebbca9575
 // 2017/01/31 12:08:08 Deleting from x 2d20944e-7952-40c1-bd15-f3fa1a70026d
-func DeleteCreatedEntities(db *gorm.DB) func() {
+func DeleteCreatedEntities(db *gorm.DB, config DBTestSuiteConfiguration) func() error {
 	hookName := "mighti:record"
 	type entity struct {
-		table   string
-		keyname string
-		key     interface{}
+		table string
+		keys  map[string]interface{}
 	}
-	var entires []entity
+	var entities []entity
 	hookRegistered := db.Callback().Create().Get(hookName) != nil
 	if hookRegistered {
 		hookName += "-" + uuid.NewV4().String()
 	}
 	db.Callback().Create().After("gorm:create").Register(hookName, func(scope *gorm.Scope) {
-		log.Logger().Debugln(fmt.Sprintf("Inserted entities from %s with %s=%v", scope.TableName(), scope.PrimaryKey(), scope.PrimaryKeyValue()))
-		entires = append(entires, entity{table: scope.TableName(), keyname: scope.PrimaryKey(), key: scope.PrimaryKeyValue()})
+		fields := scope.PrimaryFields()
+		keys := make(map[string]interface{})
+		for _, field := range fields {
+			keys[field.DBName] = field.Field.Interface()
+		}
+		log.Logger().Debugln(fmt.Sprintf("Inserted entities from %s with keys %v", scope.TableName(), keys))
+		entities = append(entities, entity{table: scope.TableName(), keys: keys})
 	})
-	return func() {
+	return func() error {
 		defer db.Callback().Create().Remove(hookName)
+		var resultErr error
 		// Find out if the current db object is already a transaction
 		_, inTransaction := db.CommonDB().(*sql.Tx)
 		tx := db
 		if !inTransaction {
 			tx = db.Begin()
 		}
-		for i := len(entires) - 1; i >= 0; i-- {
-			entry := entires[i]
-			log.Debug(nil, map[string]interface{}{
-				"table":     entry.table,
-				"key":       entry.key,
-				"hook_name": hookName,
-			}, "Deleting entities from '%s' table with key %v", entry.table, entry.key)
-			tx.Table(entry.table).Where(entry.keyname+" = ?", entry.key).Delete("")
-		}
 
-		// Delete the work item cache as well
-		// NOTE: Feel free to add more cache freeing calls here as needed.
-		// workitem.ClearGlobalWorkItemTypeCache()
-		// TODO: need a way to hook custom clean functions in here
+		for i := len(entities) - 1; i >= 0; i-- {
+			entity := entities[i]
+			log.Debug(nil, map[string]interface{}{
+				"table":     entity.table,
+				"keys":      entity.keys,
+				"hook_name": hookName,
+			}, "Deleting entities from '%s' table with keys %v", entity.table, entity.keys)
+			if len(entity.keys) == 0 {
+				if config.IsCleanTestDataErrorReportingRequired() {
+					resultErr = fmt.Errorf("no primary keys found for '%s' table", entity.table)
+				}
+			} else {
+				err := tx.Table(entity.table).Where(entity.keys).Delete("").Error
+				if err != nil && config.IsCleanTestDataErrorReportingRequired() {
+					resultErr = errors.Wrap(err, fmt.Sprintf("failed to delete entities for '%s' table", entity.table))
+				}
+			}
+		}
 
 		if !inTransaction {
-			tx.Commit()
+			err := tx.Commit().Error
+			if config.IsCleanTestDataErrorReportingRequired() {
+				if resultErr != nil {
+					err = errors.Wrap(resultErr, "unable to cleanup DB")
+				}
+				resultErr = errors.Wrap(err, "failed to commit transaction")
+			}
 		}
+		return resultErr
 	}
 }
