@@ -93,3 +93,7 @@ func (c *config) IsDBLogsEnabled() bool {
 func (c *config) IsCleanTestDataEnabled() bool {
 	return true
 }
+
+func (c *config) IsCleanTestDataErrorReportingRequired() bool {
+	return true
+}

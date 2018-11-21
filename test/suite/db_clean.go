@@ -7,6 +7,7 @@ import (
 	"github.com/fabric8-services/fabric8-common/log"
 
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
 
@@ -37,7 +38,7 @@ import (
 // 2017/01/31 12:08:08 Deleting from x 6d143405-1232-40de-bc73-835b543cd972
 // 2017/01/31 12:08:08 Deleting from x 0685068d-4934-4d9a-bac2-91eebbca9575
 // 2017/01/31 12:08:08 Deleting from x 2d20944e-7952-40c1-bd15-f3fa1a70026d
-func DeleteCreatedEntities(db *gorm.DB) func() {
+func DeleteCreatedEntities(db *gorm.DB, config DBTestSuiteConfiguration) func() error {
 	hookName := "mighti:record"
 	type entity struct {
 		table string
@@ -57,14 +58,16 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		log.Logger().Debugln(fmt.Sprintf("Inserted entities from %s with keys %v", scope.TableName(), keys))
 		entities = append(entities, entity{table: scope.TableName(), keys: keys})
 	})
-	return func() {
+	return func() error {
 		defer db.Callback().Create().Remove(hookName)
+		var resultErr error
 		// Find out if the current db object is already a transaction
 		_, inTransaction := db.CommonDB().(*sql.Tx)
 		tx := db
 		if !inTransaction {
 			tx = db.Begin()
 		}
+
 		for i := len(entities) - 1; i >= 0; i-- {
 			entity := entities[i]
 			log.Debug(nil, map[string]interface{}{
@@ -73,16 +76,26 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 				"hook_name": hookName,
 			}, "Deleting entities from '%s' table with keys %v", entity.table, entity.keys)
 			if len(entity.keys) == 0 {
-				log.Panic(nil, map[string]interface{}{
-					"table":     entity.table,
-					"hook_name": hookName,
-				}, "no primary keys found!!!")
+				if config.IsCleanTestDataErrorReportingRequired() {
+					resultErr = fmt.Errorf("no primary keys found for '%s' table", entity.table)
+				}
+			} else {
+				err := tx.Table(entity.table).Where(entity.keys).Delete("").Error
+				if err != nil && config.IsCleanTestDataErrorReportingRequired() {
+					resultErr = errors.Wrap(err, fmt.Sprintf("failed to delete entities for '%s' table", entity.table))
+				}
 			}
-			tx.Table(entity.table).Where(entity.keys).Delete("")
 		}
 
 		if !inTransaction {
-			tx.Commit()
+			err := tx.Commit().Error
+			if config.IsCleanTestDataErrorReportingRequired() {
+				if resultErr != nil {
+					err = errors.Wrap(resultErr, "unable to cleanup DB")
+				}
+				resultErr = errors.Wrap(err, "failed to commit transaction")
+			}
 		}
+		return resultErr
 	}
 }
