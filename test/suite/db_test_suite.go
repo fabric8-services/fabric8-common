@@ -6,6 +6,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-common/log"
 	"github.com/fabric8-services/fabric8-common/resource"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
@@ -20,6 +21,7 @@ type DBTestSuiteConfiguration interface {
 	GetPostgresConfigString() string
 	IsDBLogsEnabled() bool
 	IsCleanTestDataEnabled() bool
+	IsCleanTestDataErrorReportingRequired() bool
 }
 
 // NewDBTestSuite instantiates a new DBTestSuite
@@ -35,8 +37,8 @@ type DBTestSuite struct {
 	config     DBTestSuiteConfiguration
 	Ctx        context.Context
 	DB         *gorm.DB
-	CleanTest  func()
-	CleanSuite func()
+	CleanTest  func() error
+	CleanSuite func() error
 }
 
 // SetupSuite implements suite.SetupAllSuite
@@ -54,12 +56,12 @@ func (s *DBTestSuite) SetupSuite() {
 	}
 	// configures the log mode for the SQL queries (by default, disabled)
 	s.DB.LogMode(s.config.IsDBLogsEnabled())
-	s.CleanSuite = DeleteCreatedEntities(s.DB)
+	s.CleanSuite = DeleteCreatedEntities(s.DB, s.config)
 }
 
 // SetupTest implements suite.SetupTest
 func (s *DBTestSuite) SetupTest() {
-	s.CleanTest = DeleteCreatedEntities(s.DB)
+	s.CleanTest = DeleteCreatedEntities(s.DB, s.config)
 }
 
 // TearDownTest implements suite.TearDownTest
@@ -68,7 +70,7 @@ func (s *DBTestSuite) TearDownTest() {
 	// the SQL queries. In that case, the `AUTH_CLEAN_TEST_DATA` env variable should be set to `false`.
 	// By default, test data will be removed from the DB after each test
 	if s.config.IsCleanTestDataEnabled() {
-		s.CleanTest()
+		assert.NoError(s.T(), s.CleanTest())
 	}
 }
 
@@ -81,10 +83,10 @@ func (s *DBTestSuite) TearDownSuite() {
 	// in some cases, we might need to keep the test data in the DB for inspecting/reproducing
 	// the SQL queries. In that case, the `AUTH_CLEAN_TEST_DATA` env variable should be set to `false`.
 	// By default, test data will be removed from the DB after each test
+	defer s.DB.Close()
 	if s.config.IsCleanTestDataEnabled() {
-		s.CleanSuite()
+		assert.NoError(s.T(), s.CleanSuite())
 	}
-	s.DB.Close()
 }
 
 // DisableGormCallbacks will turn off gorm's automatic setting of `created_at`
