@@ -606,7 +606,6 @@
     "github.com/goadesign/goa/middleware",
     "github.com/goadesign/goa/middleware/security/jwt",
     "github.com/goadesign/goa/uuid",
-    "github.com/gojuno/minimock",
     "github.com/gojuno/minimock/cmd/minimock",
     "github.com/golang/lint/golint",
     "github.com/jinzhu/gorm",
