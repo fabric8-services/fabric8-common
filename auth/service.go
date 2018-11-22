@@ -23,14 +23,17 @@ func NewAuthService(authURL string) (AuthService, error) {
 		return nil, err
 	}
 
-	return &auth{u}, nil
+	return &serviceImpl{u}, nil
 }
 
-type auth struct {
+type serviceImpl struct {
 	authURL *url.URL
 }
 
-func (a *auth) RequireScope(ctx context.Context, resourceID, requiredScope string) error {
+// RequireScope does a permission check for the identity represented by the token in the given context,
+// to determine whether the user has a particular scope for the specified resource.
+// It will return a ForbiddenError if the identity does not have the specified scope for the resource.
+func (a *serviceImpl) RequireScope(ctx context.Context, resourceID, requiredScope string) error {
 	client := a.createClient(ctx)
 	resp, err := client.ScopesResource(goasupport.ForwardContextRequestID(ctx), authclient.ScopesResourcePath(resourceID))
 	if err != nil {
@@ -50,7 +53,8 @@ func (a *auth) RequireScope(ctx context.Context, resourceID, requiredScope strin
 	return errors.NewForbiddenError(fmt.Sprintf("missing required scope '%s' on '%s' resource", requiredScope, resourceID))
 }
 
-func (a *auth) createClient(ctx context.Context) *authclient.Client {
+// createClient creates a new client to be used to call Auth service
+func (a *serviceImpl) createClient(ctx context.Context) *authclient.Client {
 	c := authclient.New(goaclient.HTTPClientDoer(http.DefaultClient))
 	c.Host = a.authURL.Host
 	c.Scheme = a.authURL.Scheme
