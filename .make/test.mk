@@ -379,7 +379,7 @@ $(COV_PATH_INTEGRATION): $(SOURCES) $(GOCOVMERGE_BIN)
 generate-mocks: deps $(MINIMOCK_BIN) ## Generate Minimock sources. Only necessary after clean or if changes occurred in interfaces.
 	@echo "Generating mocks..."
 	@-mkdir -p test/generated/token
-	@$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-common/token.ManagerConfiguration -o ./test/generated/token/ -s ".go"
+	@$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-common/auth.ManagerConfiguration -o ./test/generated/token/ -s ".go"
 
 #-------------------------------------------------------------------------------
 # Additional tools to build

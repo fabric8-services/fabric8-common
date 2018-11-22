@@ -119,3 +119,7 @@ required = [
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-auth-client"
   branch = "master"
+
+[[constraint]]
+  name = "gopkg.in/h2non/gock.v1"
+  revision = "v1.0.12"
