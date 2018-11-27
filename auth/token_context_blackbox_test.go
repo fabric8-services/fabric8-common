@@ -39,7 +39,7 @@ func (s *TokenContextTestSuite) TestServiceAccount() {
 	ctx, identity, err := testauth.EmbedUserTokenInContext(nil, nil)
 	require.NoError(s.T(), err)
 
-	s.T().Run("Reading manager form context and creating context is OK", func(t *testing.T) {
+	s.T().Run("Reading manager from context and creating context is OK", func(t *testing.T) {
 		// Reading the context
 		tm, err := auth.ReadManagerFromContext(ctx)
 		require.NoError(t, err)
