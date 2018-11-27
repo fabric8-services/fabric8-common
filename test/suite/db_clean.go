@@ -39,16 +39,12 @@ import (
 // 2017/01/31 12:08:08 Deleting from x 0685068d-4934-4d9a-bac2-91eebbca9575
 // 2017/01/31 12:08:08 Deleting from x 2d20944e-7952-40c1-bd15-f3fa1a70026d
 func DeleteCreatedEntities(db *gorm.DB, config DBTestSuiteConfiguration) func() error {
-	hookName := "mighti:record"
 	type entity struct {
 		table string
 		keys  map[string]interface{}
 	}
 	var entities []entity
-	hookRegistered := db.Callback().Create().Get(hookName) != nil
-	if hookRegistered {
-		hookName += "-" + uuid.NewV4().String()
-	}
+	hookName := newHookname()
 	db.Callback().Create().After("gorm:create").Register(hookName, func(scope *gorm.Scope) {
 		fields := scope.PrimaryFields()
 		keys := make(map[string]interface{})
@@ -59,7 +55,6 @@ func DeleteCreatedEntities(db *gorm.DB, config DBTestSuiteConfiguration) func() 
 		entities = append(entities, entity{table: scope.TableName(), keys: keys})
 	})
 	return func() error {
-		defer db.Callback().Create().Remove(hookName)
 		var resultErr error
 		// Find out if the current db object is already a transaction
 		_, inTransaction := db.CommonDB().(*sql.Tx)
@@ -67,7 +62,23 @@ func DeleteCreatedEntities(db *gorm.DB, config DBTestSuiteConfiguration) func() 
 		if !inTransaction {
 			tx = db.Begin()
 		}
-
+		defer func() {
+			db.Callback().Create().Remove(hookName)
+			// restore all constraints to IMMEDIATE
+			_, err := tx.CommonDB().Exec("SET CONSTRAINTS ALL IMMEDIATE")
+			if err != nil {
+				log.Error(nil, map[string]interface{}{
+					"error": err,
+				}, "failed to restore all constraints after cleaning the test records in the DB")
+			}
+		}()
+		// defer all DB constraints that can be deferred (see https://www.postgresql.org/docs/8.2/sql-set-constraints.html)
+		_, err := tx.CommonDB().Exec("SET CONSTRAINTS ALL DEFERRED")
+		if err != nil {
+			log.Error(nil, map[string]interface{}{
+				"error": err,
+			}, "failed to defer all constraints before cleaning the test records in the DB")
+		}
 		for i := len(entities) - 1; i >= 0; i-- {
 			entity := entities[i]
 			log.Debug(nil, map[string]interface{}{
@@ -98,4 +109,8 @@ func DeleteCreatedEntities(db *gorm.DB, config DBTestSuiteConfiguration) func() 
 		}
 		return resultErr
 	}
+}
+
+func newHookname() string {
+	return fmt.Sprintf("fabric8:record-%s", uuid.NewV4())
 }
