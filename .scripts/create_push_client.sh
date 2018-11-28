@@ -37,7 +37,7 @@ function generate_client_and_create_pr() {
     git rev-parse HEAD > /tmp/${GHREPO}/source_commit.txt
     cd /tmp/${GHREPO}
 
-    git commit ${PKG_NAME} ${TOOL_DIR} source_commit.txt -m "${message}"
+    git add ${PKG_NAME} ${TOOL_DIR} source_commit.txt && git commit -m "${message}"
     git push -q -u origin ${branch}
 
     set +x
