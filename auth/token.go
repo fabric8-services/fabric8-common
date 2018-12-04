@@ -26,13 +26,22 @@ import (
 const (
 	// Service Account Names
 
-	Auth         = "fabric8-auth"
-	WIT          = "fabric8-wit"
-	OsoProxy     = "fabric8-oso-proxy"
-	Tenant       = "fabric8-tenant"
+	// Auth the username of the `fabric8-auth` SA token
+	Auth = "fabric8-auth"
+	// WIT the username of the `fabric8-wit` SA token
+	WIT = "fabric8-wit"
+	// OsoProxy the username of the `fabric8-oso-proxy` SA token
+	OsoProxy = "fabric8-oso-proxy"
+	// Tenant the username of the `fabric8-tenant` SA token
+	Tenant = "fabric8-tenant"
+	// Notification the username of the `fabric8-notification` SA token
 	Notification = "fabric8-notification"
+	// JenkinsIdler the username of the `fabric8-jenkins-idler` SA token
 	JenkinsIdler = "fabric8-jenkins-idler"
+	// JenkinsProxy the username of the `fabric8-jenkins-proxy` SA token
 	JenkinsProxy = "fabric8-jenkins-proxy"
+	// ToolChainOperator the username of the `toolchain-operator` SA token
+	ToolChainOperator = "toolchain-operator"
 
 	devModeKeyID = "test-key"
 )
