@@ -139,7 +139,7 @@ test-unit: prebuild-check generate clean-coverage-unit $(COV_PATH_UNIT)
 test-unit-no-coverage: prebuild-check generate $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_UNIT_TEST=1 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_UNIT_TEST=1 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) -vet off $(TEST_PACKAGES)
 
 .PHONY: test-unit-no-coverage-junit
 test-unit-no-coverage-junit: prebuild-check generate ${GO_JUNIT_BIN} ${TMP_PATH}
@@ -312,6 +312,7 @@ $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(C
 @$(ENV_VAR) F8_DEVELOPER_MODE_ENABLED=1 F8_POSTGRES_HOST=$(F8_POSTGRES_HOST) F8_LOG_LEVEL=$(F8_LOG_LEVEL) \
 	go test  $(PACKAGE_NAME) \
 		$(GO_TEST_VERBOSITY_FLAG) \
+		-vet off \
 		-coverprofile $(COV_OUT_FILE) \
 		-coverpkg $(ALL_PKGS_COMMA_SEPARATED) \
 		-covermode=$(COVERAGE_MODE) \
@@ -464,7 +465,7 @@ endif
 test-integration-no-coverage: prebuild-check generate $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) -vet off $(TEST_PACKAGES)
 
 .PHONY: test-integration
 ## Make sure you ran "make integration-test-env-prepare" before you run this target.
