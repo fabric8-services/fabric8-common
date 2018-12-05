@@ -33,7 +33,7 @@ function install_deps() {
   /usr/sbin/setenforce 0 || :
 
   # Get all the deps in
-  yum -y install --quiet \
+  yum -y install \
     docker \
     make \
     git \
