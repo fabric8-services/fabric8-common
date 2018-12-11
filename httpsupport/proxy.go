@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -165,9 +166,15 @@ func (w gunzipResponseWriter) Write(b []byte) (int, error) {
 	}()
 	data, err := ioutil.ReadAll(gr)
 	if err != nil {
+		fmt.Printf("!!!!!!: %v\n", err)
+		panic(err)
 		return 0, err
 	}
-	return w.ResponseWriter.Write(data)
+	i, err := w.ResponseWriter.Write(data)
+	//if err != nil {
+	//	panic(err)
+	//}
+	return i, err
 }
 
 func (w gunzipResponseWriter) WriteHeader(code int) {

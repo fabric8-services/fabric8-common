@@ -195,7 +195,7 @@ var veryLongBody = generateLongBody()
 
 func generateLongBody() string {
 	body := uuid.NewV4().String()
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10000; i++ {
 		body = body + uuid.NewV4().String()
 	}
 	return body
