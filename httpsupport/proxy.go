@@ -73,6 +73,14 @@ func route(ctx context.Context, targetHost string, targetPath *string, options .
 		return err
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warn(ctx, map[string]interface{}{
+				"Recovered": r,
+			}, "Recovered from ReverseProxy panic")
+		}
+	}()
+
 	director := newDirector(ctx, req, targetURL, targetPath)
 	proxy := &httputil.ReverseProxy{Director: director}
 	// configure the proxy with the options
