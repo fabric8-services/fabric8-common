@@ -1,10 +1,12 @@
 package httpsupport_test
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -55,6 +57,8 @@ func TestProxy(t *testing.T) {
 	rw = httptest.NewRecorder()
 	req, err = http.NewRequest("POST", u.String(), nil)
 	require.NoError(t, err)
+	// Do not suppress panics
+	req = req.WithContext(context.WithValue(context.Background(), http.ServerContextKey, "ProxyTest"))
 
 	ctx = context.Background()
 	goaCtx = goa.NewContext(goa.WithAction(ctx, "ProxyTest"), rw, req, url.Values{})
@@ -68,7 +72,19 @@ func TestProxy(t *testing.T) {
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
 	body, err = httpsupport.ReadBody(rw.Result().Body)
 	require.NoError(t, err)
-	assert.Equal(t, veryLongBody, body)
+	assert.Equal(t, veryLongBody, unzip(t, body))
+}
+
+func unzip(t *testing.T, s string) string {
+	gr, err := gzip.NewReader(bytes.NewBuffer([]byte(s)))
+	require.NoError(t, err)
+	defer func() {
+		err := gr.Close()
+		require.NoError(t, err)
+	}()
+	data, err := ioutil.ReadAll(gr)
+	require.NoError(t, err)
+	return string(data)
 }
 
 func TestProxyWithOptions(t *testing.T) {
