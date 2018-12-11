@@ -1,10 +1,7 @@
 package httpsupport
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -80,12 +77,7 @@ func route(ctx context.Context, targetHost string, targetPath *string, options .
 		opt(proxy)
 	}
 
-	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
-		gzr := gunzipResponseWriter{ctx: ctx, ResponseWriter: rw, targetURL: *req.URL}
-		proxy.ServeHTTP(gzr, req.Request)
-	} else {
-		proxy.ServeHTTP(rw, req.Request)
-	}
+	proxy.ServeHTTP(rw, req.Request)
 
 	return nil
 }
@@ -140,45 +132,6 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 			"target_string":    target.String(),
 		}, "Routing %s to %s", originalReqString, targetReqString)
 	}
-}
-
-type gunzipResponseWriter struct {
-	http.ResponseWriter
-	ctx       context.Context
-	targetURL url.URL
-}
-
-func (w gunzipResponseWriter) Write(b []byte) (int, error) {
-	// Write gunzipped data to the client
-	gr, err := gzip.NewReader(bytes.NewBuffer(b))
-	if err != nil {
-		return 0, err
-	}
-	defer func() {
-		err := gr.Close()
-		if err != nil {
-			log.Error(w.ctx, map[string]interface{}{
-				"err":        err,
-				"target_url": w.targetURL.String(),
-			}, "unable to close gzip writer while serving request in proxy")
-		}
-	}()
-	data, err := ioutil.ReadAll(gr)
-	if err != nil {
-		return 0, err
-	}
-	return w.ResponseWriter.Write(data)
-}
-
-func (w gunzipResponseWriter) WriteHeader(code int) {
-	w.Header().Del("Content-Length")
-	// Remove duplicated headers
-	for key, value := range w.Header() {
-		if len(value) > 0 {
-			w.Header().Set(key, value[0])
-		}
-	}
-	w.ResponseWriter.WriteHeader(code)
 }
 
 func singleJoiningSlash(a, b string) string {
