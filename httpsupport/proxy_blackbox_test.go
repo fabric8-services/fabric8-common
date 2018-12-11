@@ -54,6 +54,8 @@ func TestProxy(t *testing.T) {
 	// POST, gzipped, changed target path
 	rw = httptest.NewRecorder()
 	req, err = http.NewRequest("POST", u.String(), nil)
+	req = req.WithContext(context.WithValue(context.Background(), http.ServerContextKey, "ProxyTest"))
+
 	require.NoError(t, err)
 
 	ctx = context.Background()

@@ -167,7 +167,8 @@ func (w gunzipResponseWriter) Write(b []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return w.ResponseWriter.Write(data)
+	_, err = w.ResponseWriter.Write(data)
+	return len(b), err
 }
 
 func (w gunzipResponseWriter) WriteHeader(code int) {
