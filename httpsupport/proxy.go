@@ -1,7 +1,10 @@
 package httpsupport
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -12,6 +15,8 @@ import (
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 )
+
+var inOurTests bool // whether we're in our own tests
 
 // RouteHTTPToPath uses a reverse proxy to route the http request to the scheme, host provided in targetHost
 // and path provided in targetPath.
@@ -70,6 +75,18 @@ func route(ctx context.Context, targetHost string, targetPath *string, options .
 		return err
 	}
 
+	// In go 1.11 a new panic was introduced in reverseproxy.go - https://github.com/golang/go/issues/23643
+	// We suppress it here as a workaround for - https://github.com/fabric8-services/fabric8-auth/issues/734
+	if !inOurTests {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error(ctx, map[string]interface{}{
+					"Recovered": r,
+				}, "Recovered from ReverseProxy panic")
+			}
+		}()
+	}
+
 	director := newDirector(ctx, req, targetURL, targetPath)
 	proxy := &httputil.ReverseProxy{Director: director}
 	// configure the proxy with the options
@@ -77,7 +94,12 @@ func route(ctx context.Context, targetHost string, targetPath *string, options .
 		opt(proxy)
 	}
 
-	proxy.ServeHTTP(rw, req.Request)
+	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
+		gzr := gunzipResponseWriter{ctx: ctx, ResponseWriter: rw, targetURL: *req.URL}
+		proxy.ServeHTTP(gzr, req.Request)
+	} else {
+		proxy.ServeHTTP(rw, req.Request)
+	}
 
 	return nil
 }
@@ -132,6 +154,46 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 			"target_string":    target.String(),
 		}, "Routing %s to %s", originalReqString, targetReqString)
 	}
+}
+
+type gunzipResponseWriter struct {
+	http.ResponseWriter
+	ctx       context.Context
+	targetURL url.URL
+}
+
+func (w gunzipResponseWriter) Write(b []byte) (int, error) {
+	// Write gunzipped data to the client
+	gr, err := gzip.NewReader(bytes.NewBuffer(b))
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		err := gr.Close()
+		if err != nil {
+			log.Error(w.ctx, map[string]interface{}{
+				"err":        err,
+				"target_url": w.targetURL.String(),
+			}, "unable to close gzip writer while serving request in proxy")
+		}
+	}()
+	data, err := ioutil.ReadAll(gr)
+	if err != nil {
+		return 0, err
+	}
+	_, err = w.ResponseWriter.Write(data)
+	return len(b), err
+}
+
+func (w gunzipResponseWriter) WriteHeader(code int) {
+	w.Header().Del("Content-Length")
+	// Remove duplicated headers
+	for key, value := range w.Header() {
+		if len(value) > 0 {
+			w.Header().Set(key, value[0])
+		}
+	}
+	w.ResponseWriter.WriteHeader(code)
 }
 
 func singleJoiningSlash(a, b string) string {
