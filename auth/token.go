@@ -42,6 +42,8 @@ const (
 	JenkinsProxy = "fabric8-jenkins-proxy"
 	// ToolChainOperator the username of the `toolchain-operator` SA token
 	ToolChainOperator = "toolchain-operator"
+	// TenantUpdate the username of the `fabric8-tenant-update` SA token
+	TenantUpdate = "fabric8-tenant-update"
 
 	devModeKeyID = "test-key"
 )
