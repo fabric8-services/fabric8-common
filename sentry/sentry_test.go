@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-common/resource"
 	testauth "github.com/fabric8-services/fabric8-common/test/auth"
 
+	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/raven-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -102,6 +103,43 @@ func TestExtractUserInfo(t *testing.T) {
 			ID:       userID.String(),
 			Email:    username + "@email.com",
 		}, *userInfo)
+	})
+
+}
+
+func TestCaptureError(t *testing.T) {
+	// given
+	sentryDSN := "https://abcdef123:abcde123@sentry.instance.server.io/1"
+	haltSentry, err := InitializeSentryClient(
+		&sentryDSN,
+		WithRelease("123"),
+		WithEnvironment("test"))
+	require.NoError(t, err)
+	defer haltSentry()
+
+	testError := errors.New("test error")
+
+	t.Run("call sentry with correct context", func(t *testing.T) {
+		// given
+		claims := jwt.MapClaims{}
+		claims["sub"] = uuid.NewV4().String()
+		claims["preferred_username"] = "test-user"
+		claims["email"] = "test@acme.com"
+
+		token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
+		ctx := goajwt.WithJWT(context.Background(), token)
+
+		// when
+		Sentry().CaptureError(ctx, testError)
+		// then
+		require.NoError(t, err)
+	})
+
+	t.Run("call sentry with nil context", func(t *testing.T) {
+		// when
+		Sentry().CaptureError(nil, testError)
+		// then
+		require.NoError(t, err)
 	})
 
 }
