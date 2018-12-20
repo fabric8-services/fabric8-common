@@ -26,6 +26,9 @@ func extractIdentityID(ctx context.Context) (string, error) {
 
 // ExtractRequestID obtains the request ID either from a goa client or middleware
 func ExtractRequestID(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
 	reqID := middleware.ContextRequestID(ctx)
 	if reqID == "" {
 		return client.ContextRequestID(ctx)
