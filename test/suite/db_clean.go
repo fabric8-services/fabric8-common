@@ -8,7 +8,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // DeleteCreatedEntities records all created entities on the gorm.DB connection
@@ -64,15 +64,8 @@ func DeleteCreatedEntities(db *gorm.DB, config DBTestSuiteConfiguration) func() 
 		}
 		defer func() {
 			db.Callback().Create().Remove(hookName)
-			// restore all constraints to IMMEDIATE
-			_, err := tx.CommonDB().Exec("SET CONSTRAINTS ALL IMMEDIATE")
-			if err != nil {
-				log.Error(nil, map[string]interface{}{
-					"error": err,
-				}, "failed to restore all constraints after cleaning the test records in the DB")
-			}
 		}()
-		// defer all DB constraints that can be deferred (see https://www.postgresql.org/docs/8.2/sql-set-constraints.html)
+		// defer all DB constraints that can be deferred (see https://www.postgresql.org/docs/9.6/sql-set-constraints.html)
 		_, err := tx.CommonDB().Exec("SET CONSTRAINTS ALL DEFERRED")
 		if err != nil {
 			log.Error(nil, map[string]interface{}{
