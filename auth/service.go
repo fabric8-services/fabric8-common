@@ -40,7 +40,7 @@ func (a *serviceImpl) RequireScope(ctx context.Context, resourceID, requiredScop
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return errors.NewInternalErrorFromString(fmt.Sprintf("get space's scope failed with error '%s'", resp.Status))
+		return errors.NewInternalErrorFromString(fmt.Sprintf("get resource's scope failed with error '%s'", resp.Status))
 	}
 
 	defer resp.Body.Close()

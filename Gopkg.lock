@@ -84,6 +84,14 @@
   revision = "0eb93fc6cee1e202cb0f3ade92e99a2423b49283"
 
 [[projects]]
+  branch = "master"
+  digest = "1:d2c914ec64695cd7cd50c9b9b532b4beb5ee2aa2433511a8c7ef6da9e8349e10"
+  name = "github.com/fabric8-services/fabric8-cluster-client"
+  packages = ["cluster"]
+  pruneopts = "UT"
+  revision = "a1b0fede224d64c2840f1370962f04204f9fdcd0"
+
+[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -588,6 +596,7 @@
     "github.com/dnaeon/go-vcr/cassette",
     "github.com/dnaeon/go-vcr/recorder",
     "github.com/fabric8-services/fabric8-auth-client/auth",
+    "github.com/fabric8-services/fabric8-cluster-client/cluster",
     "github.com/fzipp/gocyclo",
     "github.com/getsentry/raven-go",
     "github.com/goadesign/goa",
@@ -606,7 +615,6 @@
     "github.com/goadesign/goa/middleware",
     "github.com/goadesign/goa/middleware/security/jwt",
     "github.com/goadesign/goa/uuid",
-    "github.com/gojuno/minimock",
     "github.com/gojuno/minimock/cmd/minimock",
     "github.com/golang/lint/golint",
     "github.com/jinzhu/gorm",

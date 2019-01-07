@@ -10,11 +10,11 @@ import (
 	testauth "github.com/fabric8-services/fabric8-common/test/auth"
 	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
 
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/h2non/gock.v1"
+	gock "gopkg.in/h2non/gock.v1"
 )
 
 var url = "https://auth.prod-preview.openshift.io"
@@ -67,7 +67,7 @@ func (s *AuthServiceTestSuite) TestCheckResourceScope() {
 			BodyString(`{"data":[{"id":"view","type":"user_resource_scope"},{"id":"contribute","type":"user_resource_scope"}]}`)
 
 		err := s.authService.RequireScope(ctx, resID.String(), "manage")
-		testsupport.AssertError(s.T(), err, errors.ForbiddenError{}, "missing required scope 'manage' on '%s' resource", resID)
+		testsupport.AssertError(t, err, errors.ForbiddenError{}, "missing required scope 'manage' on '%s' resource", resID)
 	})
 
 	s.T().Run("error_unauthorized", func(t *testing.T) {
@@ -79,7 +79,7 @@ func (s *AuthServiceTestSuite) TestCheckResourceScope() {
 			Reply(401)
 
 		err := s.authService.RequireScope(ctx, resID.String(), "manage")
-		testsupport.AssertError(s.T(), err, errors.InternalError{}, "get space's scope failed with error '401 Unauthorized'")
+		testsupport.AssertError(t, err, errors.InternalError{}, "get resource's scope failed with error '401 Unauthorized'")
 	})
 
 	s.T().Run("error_internal_server", func(t *testing.T) {
@@ -91,7 +91,7 @@ func (s *AuthServiceTestSuite) TestCheckResourceScope() {
 			Reply(500)
 
 		err := s.authService.RequireScope(ctx, resID.String(), "manage")
-		testsupport.AssertError(s.T(), err, errors.InternalError{}, "get space's scope failed with error '500 Internal Server Error'")
+		testsupport.AssertError(t, err, errors.InternalError{}, "get resource's scope failed with error '500 Internal Server Error'")
 	})
 
 	s.T().Run("error_not_found", func(t *testing.T) {
@@ -103,6 +103,6 @@ func (s *AuthServiceTestSuite) TestCheckResourceScope() {
 			Reply(404)
 
 		err := s.authService.RequireScope(ctx, resID.String(), "manage")
-		testsupport.AssertError(s.T(), err, errors.InternalError{}, "get space's scope failed with error '404 Not Found'")
+		testsupport.AssertError(t, err, errors.InternalError{}, "get resource's scope failed with error '404 Not Found'")
 	})
 }
