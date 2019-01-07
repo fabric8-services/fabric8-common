@@ -48,10 +48,6 @@ required = [
   go-tests = true
   unused-packages = true
 
-# [[constraint]]
-#   name = "github.com/asaskevich/govalidator"
-#   version = "5.0.0"
-
 [[constraint]]
   name = "github.com/dgrijalva/jwt-go"
   version = "3.0.0"
@@ -72,13 +68,9 @@ required = [
   name = "github.com/prometheus/client_golang"
   version = "0.8.0"
 
-# [[constraint]]
-#   name = "github.com/robfig/cron"
-#   version = "1.0.0"
-
 [[constraint]]
   name = "github.com/sirupsen/logrus"
-  version = "0.11.2"
+  version = "v1.3.0" 
 
 [[constraint]]
   name = "github.com/stretchr/testify"
