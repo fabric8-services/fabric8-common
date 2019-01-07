@@ -48,11 +48,11 @@ func (s *ClusterServiceTestSuite) TestClustersUser() {
 	s.T().Run("ok", func(t *testing.T) {
 		wantResp := &clusterclient.ClusterList{
 			Data: []*clusterclient.ClusterData{
-				&clusterclient.ClusterData{
+				{
 					Name:   "cluster1",
 					APIURL: "http://cluster1.com",
 				},
-				&clusterclient.ClusterData{
+				{
 					Name:   "cluster2",
 					APIURL: "http://cluster2.com",
 				},
