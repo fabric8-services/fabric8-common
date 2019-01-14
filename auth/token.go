@@ -266,7 +266,7 @@ func (mgm *tokenManager) AddLoginRequiredHeader(rw http.ResponseWriter) {
 // IsSpecificServiceAccount checks if the request is done by a service account listed in the names param
 // based on the JWT Token provided in context
 func IsSpecificServiceAccount(ctx context.Context, names ...string) bool {
-	accountName, ok := extractServiceAccountName(ctx)
+	accountName, ok := ExtractServiceAccountName(ctx)
 	if !ok {
 		return false
 	}
@@ -281,11 +281,11 @@ func IsSpecificServiceAccount(ctx context.Context, names ...string) bool {
 // IsServiceAccount checks if the request is done by a
 // Service account based on the JWT Token provided in context
 func IsServiceAccount(ctx context.Context) bool {
-	_, ok := extractServiceAccountName(ctx)
+	_, ok := ExtractServiceAccountName(ctx)
 	return ok
 }
 
-func extractServiceAccountName(ctx context.Context) (string, bool) {
+func ExtractServiceAccountName(ctx context.Context) (string, bool) {
 	token := goajwt.ContextJWT(ctx)
 	if token == nil {
 		return "", false
