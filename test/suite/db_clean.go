@@ -82,21 +82,28 @@ func DeleteCreatedEntities(db *gorm.DB, config DBTestSuiteConfiguration) func() 
 			if len(entity.keys) == 0 {
 				if config.IsCleanTestDataErrorReportingRequired() {
 					resultErr = fmt.Errorf("no primary keys found for '%s' table", entity.table)
+					log.Error(nil, map[string]interface{}{
+						"entities": entity.table,
+					}, "no entity to delete?")
+					break
 				}
 			} else {
 				err := tx.Table(entity.table).Where(entity.keys).Delete("").Error
 				if err != nil && config.IsCleanTestDataErrorReportingRequired() {
+					log.Error(nil, map[string]interface{}{
+						"error":    err,
+						"entities": entity.table,
+					}, "failed to delete entities")
 					resultErr = errors.Wrap(err, fmt.Sprintf("failed to delete entities for '%s' table", entity.table))
+					break
 				}
 			}
 		}
 
-		if !inTransaction {
+		if resultErr == nil && !inTransaction {
 			err := tx.Commit().Error
-			if config.IsCleanTestDataErrorReportingRequired() {
-				if resultErr != nil {
-					err = errors.Wrap(resultErr, "unable to cleanup DB")
-				}
+			if err != nil && config.IsCleanTestDataErrorReportingRequired() {
+				// err = errors.Wrap(resultErr, "unable to cleanup DB")
 				resultErr = errors.Wrap(err, "failed to commit transaction")
 			}
 		}
