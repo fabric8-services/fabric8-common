@@ -74,7 +74,7 @@ func (s *DBCleanupTestSuite) TestCleanupFailIfConstrainsViolated() {
 	assertRows(s.T(), 1, r, err)
 
 	err = s.CleanTest()
-	assert.EqualError(s.T(), err, "failed to commit transaction: unable to cleanup DB: failed to delete entities for 'users' table: pq: update or delete on table \"users\" violates foreign key constraint \"identities_user_id_fkey\" on table \"identities\"")
+	assert.EqualError(s.T(), err, "failed to delete entities for 'users' table: pq: update or delete on table \"users\" violates foreign key constraint \"identities_user_id_fkey\" on table \"identities\"")
 }
 
 func assertRows(t *testing.T, expected int, result sql.Result, err error) {
