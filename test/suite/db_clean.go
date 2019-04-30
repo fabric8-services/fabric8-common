@@ -106,6 +106,8 @@ func DeleteCreatedEntities(db *gorm.DB, config DBTestSuiteConfiguration) func() 
 				// err = errors.Wrap(resultErr, "unable to cleanup DB")
 				resultErr = errors.Wrap(err, "failed to commit transaction")
 			}
+		} else if resultErr != nil {
+			tx.Rollback()
 		}
 		return resultErr
 	}
