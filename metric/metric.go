@@ -61,7 +61,7 @@ func registerMetrics(service string, opts ...BucketOption) {
 		opt(buckets)
 	}
 
-	reqCnt = register(
+	reqCnt = Register(
 		prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: namespace,
@@ -71,7 +71,7 @@ func registerMetrics(service string, opts ...BucketOption) {
 			},
 			reqLabels),
 		"requests_total").(*prometheus.CounterVec)
-	reqDuration = register(
+	reqDuration = Register(
 		prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: namespace,
@@ -82,7 +82,7 @@ func registerMetrics(service string, opts ...BucketOption) {
 			},
 			reqLabels),
 		"request_duration_seconds").(*prometheus.HistogramVec)
-	reqSize = register(
+	reqSize = Register(
 		prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: namespace,
@@ -93,7 +93,7 @@ func registerMetrics(service string, opts ...BucketOption) {
 			},
 			reqLabels),
 		"request_size_bytes").(*prometheus.HistogramVec)
-	resSize = register(
+	resSize = Register(
 		prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: namespace,
@@ -107,7 +107,8 @@ func registerMetrics(service string, opts ...BucketOption) {
 	log.Info(nil, nil, "metrics registered successfully")
 }
 
-func register(c prometheus.Collector, name string) prometheus.Collector {
+// Register registers the given collector
+func Register(c prometheus.Collector, name string) prometheus.Collector {
 	err := prometheus.Register(c)
 	if err != nil {
 		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
