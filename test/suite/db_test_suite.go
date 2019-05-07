@@ -2,6 +2,7 @@ package suite
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/fabric8-services/fabric8-common/log"
@@ -34,11 +35,29 @@ func NewDBTestSuite(config DBTestSuiteConfiguration) DBTestSuite {
 // DBTestSuite is a base for tests using a gorm db
 type DBTestSuite struct {
 	suite.Suite
-	config     DBTestSuiteConfiguration
-	Ctx        context.Context
-	DB         *gorm.DB
-	CleanTest  func() error
-	CleanSuite func() error
+	config          DBTestSuiteConfiguration
+	Ctx             context.Context
+	DB              *gorm.DB
+	SetupSubtest    func()
+	TearDownSubtest func()
+	CleanTest       func() error
+	CleanSuite      func() error
+}
+
+// Run overrides the default behaviour of the Suite.Run method, in order
+// to run the SetupSubtest and TearDownSubtest methods for each subtest
+func (s *DBTestSuite) Run(name string, subtest func()) bool {
+	fmt.Printf("==== RUN Subtest '%s'\n", name)
+	if s.SetupSubtest != nil {
+		s.SetupSubtest()
+	}
+	defer func() {
+		fmt.Printf("==== END Subtest '%s'\n", name)
+		if s.TearDownSubtest != nil {
+			s.TearDownSubtest()
+		}
+	}()
+	return s.Suite.Run(name, subtest)
 }
 
 // SetupSuite implements suite.SetupAllSuite
