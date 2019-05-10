@@ -8,7 +8,7 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-common/test"
 	testauth "github.com/fabric8-services/fabric8-common/test/auth"
 	testsuite "github.com/fabric8-services/fabric8-common/test/suite"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +30,7 @@ func (s *TokenContextTestSuite) TestEmptyContext() {
 		testsupport.AssertError(t, err, errors.New(""), "missing token manager")
 	})
 	s.T().Run("Locating identity in empty context fails", func(t *testing.T) {
-		_, err := auth.LocateIdentity(context.Background())
+		_, _, err := auth.LocateIdentity(context.Background())
 		testsupport.AssertError(t, err, errors.New(""), "missing token manager")
 	})
 }
@@ -45,9 +45,10 @@ func (s *TokenContextTestSuite) TestServiceAccount() {
 		require.NoError(t, err)
 		assert.NotNil(t, tm)
 
-		id, err := tm.Locate(ctx)
+		id, username, err := tm.Locate(ctx)
 		require.NoError(t, err)
 		assert.Equal(t, identity.ID, id)
+		assert.Equal(t, identity.Username, username)
 		assert.NotEqual(t, id, uuid.UUID{})
 
 		// Creating new context
@@ -57,10 +58,12 @@ func (s *TokenContextTestSuite) TestServiceAccount() {
 		require.NoError(t, err)
 		assert.Equal(t, tm, rTm)
 	})
+
 	s.T().Run("Locating identity in context OK", func(t *testing.T) {
-		id, err := auth.LocateIdentity(ctx)
+		id, username, err := auth.LocateIdentity(ctx)
 		require.NoError(t, err)
-		assert.Equal(t, identity.ID, id)
 		assert.NotEqual(t, id, uuid.UUID{})
+		assert.Equal(t, identity.ID, id)
+		assert.Equal(t, identity.Username, username)
 	})
 }

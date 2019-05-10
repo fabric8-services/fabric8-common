@@ -20,7 +20,7 @@ import (
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -104,7 +104,7 @@ type Parser interface {
 // Manager generate and find auth token information
 type Manager interface {
 	Parser
-	Locate(ctx context.Context) (uuid.UUID, error)
+	Locate(ctx context.Context) (uuid.UUID, string, error)
 	ParseToken(ctx context.Context, tokenString string) (*TokenClaims, error)
 	ParseTokenWithMapClaims(ctx context.Context, tokenString string) (jwt.MapClaims, error)
 	PublicKey(keyID string) *rsa.PublicKey
@@ -214,20 +214,24 @@ func (mgm *tokenManager) keyFunction(ctx context.Context) jwt.Keyfunc {
 	}
 }
 
-func (mgm *tokenManager) Locate(ctx context.Context) (uuid.UUID, error) {
+func (mgm *tokenManager) Locate(ctx context.Context) (uuid.UUID, string, error) {
 	token := goajwt.ContextJWT(ctx)
 	if token == nil {
-		return uuid.UUID{}, errors.New("Missing token") // TODO, make specific tokenErrors
+		return uuid.UUID{}, "", errors.New("missing token") // TODO, make specific tokenErrors
 	}
-	id := token.Claims.(jwt.MapClaims)["sub"]
-	if id == nil {
-		return uuid.UUID{}, errors.New("Missing sub")
+	id, ok := token.Claims.(jwt.MapClaims)["sub"].(string)
+	if !ok {
+		return uuid.UUID{}, "", errors.New("missing or invalid 'sub' claim in token")
 	}
-	idTyped, err := uuid.FromString(id.(string))
+	idTyped, err := uuid.FromString(id)
 	if err != nil {
-		return uuid.UUID{}, errors.New("uuid not of type string")
+		return uuid.UUID{}, "", errors.New("token 'sub' claim is not a valid UUID")
 	}
-	return idTyped, nil
+	username, ok := token.Claims.(jwt.MapClaims)["preferred_username"].(string)
+	if !ok {
+		return uuid.UUID{}, "", errors.New("missing or invalid 'preferred_username' claim in token")
+	}
+	return idTyped, username, nil
 }
 
 // PublicKey returns the public key by the ID

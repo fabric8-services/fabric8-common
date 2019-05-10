@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/fabric8-services/fabric8-common/log"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
 )
 
 type contextTMKey int
@@ -39,10 +39,10 @@ func ContextWithTokenManager(ctx context.Context, tm interface{}) context.Contex
 
 // LocateIdentity extracts the identity ID from the token from the context.
 // Returns an error if the token manager is missing in the context.
-func LocateIdentity(ctx context.Context) (uuid.UUID, error) {
+func LocateIdentity(ctx context.Context) (uuid.UUID, string, error) {
 	tm, err := ReadManagerFromContext(ctx)
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.UUID{}, "", err
 	}
 	return tm.Locate(ctx)
 }
