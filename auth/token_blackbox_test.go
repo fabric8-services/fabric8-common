@@ -18,7 +18,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -315,23 +315,27 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		id := uuid.NewV4()
+		username := uuid.NewV4().String()
 		tk := jwt.New(jwt.SigningMethodRS256)
 		tk.Claims.(jwt.MapClaims)["sub"] = id.String()
+		tk.Claims.(jwt.MapClaims)["preferred_username"] = username
 		ctx := goajwt.WithJWT(context.Background(), tk)
 		// when
-		foundId, err := s.tm.Locate(ctx)
+		foundId, foundUsername, err := s.tm.Locate(ctx)
 		// then
 		require.NoError(t, err)
 		assert.Equal(t, id, foundId, "ID in created context not equal")
+		assert.Equal(t, username, foundUsername, "Username in created context not equal")
 	})
 
 	s.T().Run("missing token in context", func(t *testing.T) {
 		// given
 		ctx := context.Background()
 		// when
-		_, err := s.tm.Locate(ctx)
+		_, _, err := s.tm.Locate(ctx)
 		// then
 		require.Error(t, err)
+		require.Equal(t, "missing token", err.Error())
 	})
 
 	s.T().Run("missing UUID in token", func(t *testing.T) {
@@ -339,9 +343,10 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 		tk := jwt.New(jwt.SigningMethodRS256)
 		ctx := goajwt.WithJWT(context.Background(), tk)
 		// when
-		_, err := s.tm.Locate(ctx)
+		_, _, err := s.tm.Locate(ctx)
 		// then
 		require.Error(t, err)
+		require.Equal(t, "missing or invalid 'sub' claim in token", err.Error())
 	})
 
 	s.T().Run("invalid UUID in token", func(t *testing.T) {
@@ -350,10 +355,22 @@ func (s *TokenManagerTestSuite) TestLocateTokenInContext() {
 		tk.Claims.(jwt.MapClaims)["sub"] = "131"
 		ctx := goajwt.WithJWT(context.Background(), tk)
 		// when
-		_, err := s.tm.Locate(ctx)
+		_, _, err := s.tm.Locate(ctx)
 		// then
 		require.Error(t, err)
+		require.Equal(t, "token 'sub' claim is not a valid UUID", err.Error())
+	})
 
+	s.T().Run("missing username in token", func(t *testing.T) {
+		// given
+		tk := jwt.New(jwt.SigningMethodRS256)
+		tk.Claims.(jwt.MapClaims)["sub"] = uuid.NewV4().String()
+		ctx := goajwt.WithJWT(context.Background(), tk)
+		// when
+		_, _, err := s.tm.Locate(ctx)
+		// then
+		require.Error(t, err)
+		require.Equal(t, "missing or invalid 'preferred_username' claim in token", err.Error())
 	})
 }
 
