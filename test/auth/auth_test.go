@@ -35,9 +35,9 @@ func TestGenerateToken(t *testing.T) {
 		assert.Equal(t, username+"@email.com", claims["email"])
 	})
 
-	t.Run("custom email", func(t *testing.T) {
+	t.Run("custom email and approval", func(t *testing.T) {
 		// when
-		ctx, token, err := auth.EmbedTokenInContext(identityID, username, auth.WithEmailClaim("foo@bar.com"))
+		ctx, token, err := auth.EmbedTokenInContext(identityID, username, auth.WithEmailClaim("foo@bar.com"), auth.WithEmailVerifiedClaim(false))
 		// then
 		require.NoError(t, err)
 		// verify that the token is in the context
@@ -50,6 +50,7 @@ func TestGenerateToken(t *testing.T) {
 		assert.Equal(t, identityID, claims["sub"])
 		assert.Equal(t, username, claims["preferred_username"])
 		assert.Equal(t, "foo@bar.com", claims["email"])
+		assert.Equal(t, false, claims["email_verified"])
 	})
 
 }
