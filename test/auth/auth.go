@@ -17,7 +17,7 @@ import (
 	jwtgoa "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	errs "github.com/pkg/errors"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 var TokenManager = newManager()
@@ -31,14 +31,26 @@ type defaultCfg struct{}
 func (c *defaultCfg) GetAuthServiceURL() string    { return "https://auth.openshift.io" }
 func (c *defaultCfg) GetDevModePrivateKey() []byte { return []byte(configuration.DevModeRsaPrivateKey) }
 
+// ExtraClaim a function to set claims in the token to generate
+type ExtraClaim func(token *jwt.Token)
+
+// WithEmailClaim sets the `email` claim in the token to generate
+func WithEmailClaim(email string) ExtraClaim {
+	return func(token *jwt.Token) {
+		token.Claims.(jwt.MapClaims)["email"] = email
+	}
+}
+
 // GenerateToken generates a JWT user token and signs it using the default private key
-func GenerateToken(identityID string, identityUsername string) string {
+func GenerateToken(identityID string, username string, extraClaims ...ExtraClaim) string {
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Claims.(jwt.MapClaims)["uuid"] = identityID
-	token.Claims.(jwt.MapClaims)["preferred_username"] = identityUsername
+	token.Claims.(jwt.MapClaims)["preferred_username"] = username
 	token.Claims.(jwt.MapClaims)["sub"] = identityID
-	token.Claims.(jwt.MapClaims)["email"] = identityUsername + "@email.com"
-
+	token.Claims.(jwt.MapClaims)["email"] = username + "@email.com"
+	for _, extra := range extraClaims {
+		extra(token)
+	}
 	key := defaultPrivateKey()
 	token.Header["kid"] = "test-key"
 	tokenStr, err := token.SignedString(key)
@@ -236,8 +248,8 @@ func ContextWithTokenAndRequestID() (context.Context, string, string, string, er
 }
 
 // EmbedTokenInContext generates a token and embeds it into the context along with token manager
-func EmbedTokenInContext(sub, username string) (context.Context, string, error) {
-	tokenString := GenerateToken(sub, username)
+func EmbedTokenInContext(sub, username string, extraClaims ...ExtraClaim) (context.Context, string, error) {
+	tokenString := GenerateToken(sub, username, extraClaims...)
 	extracted, err := TokenManager.Parse(context.Background(), tokenString)
 	if err != nil {
 		return nil, "", err
