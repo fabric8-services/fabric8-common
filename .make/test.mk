@@ -105,7 +105,7 @@ COV_PATH_INTEGRATION = $(TMP_PATH)/coverage.integration.mode-$(COVERAGE_MODE)
 COV_PATH_OVERALL = $(TMP_PATH)/coverage.mode-$(COVERAGE_MODE)
 
 # This pattern excludes some folders from the coverage calculation (see grep -v)
-ALL_PKGS_EXCLUDE_PATTERN = "vendor\|account\/tenant\|app\'\|tool\/cli\|design\|client\|test"
+ALL_PKGS_EXCLUDE_PATTERN = "vendor\|account\/tenant\|app\'\|tool\/cli\|design\|client"
 
 # This pattern excludes some folders from the go code analysis
 GOANALYSIS_PKGS_EXCLUDE_PATTERN="vendor|account/tenant|app|client|tool/cli"

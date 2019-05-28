@@ -41,6 +41,13 @@ func WithEmailClaim(email string) ExtraClaim {
 	}
 }
 
+// WithEmailVerifiedClaim sets the `email_verified` claim in the token to generate
+func WithEmailVerifiedClaim(verified bool) ExtraClaim {
+	return func(token *jwt.Token) {
+		token.Claims.(jwt.MapClaims)["email_verified"] = verified
+	}
+}
+
 // GenerateToken generates a JWT user token and signs it using the default private key
 func GenerateToken(identityID string, username string, extraClaims ...ExtraClaim) string {
 	token := jwt.New(jwt.SigningMethodRS256)
