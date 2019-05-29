@@ -10,7 +10,7 @@ import (
 
 // AbsoluteURL prefixes a relative URL with absolute address
 // If config is not nil and run in dev mode then host is replaced by "auth.openshift.io"
-func AbsoluteURL(req *goa.RequestData, relative string, config configuration) string {
+func AbsoluteURL(req *goa.RequestData, relative string, config Configuration) string {
 	host := Host(req, config)
 	return absoluteURLForHost(req, host, relative)
 	// output: http://api.service.domain.org/somepath
@@ -22,7 +22,7 @@ func AbsoluteURL(req *goa.RequestData, relative string, config configuration) st
 // Example: https://api.service.domain.org -> https://service.domain.org
 // Also prefixes a relative URL with absolute address
 // If config is not nil and run in dev mode then "auth.openshift.io" is used as a host
-func ReplaceDomainPrefixInAbsoluteURL(req *goa.RequestData, replaceBy, relative string, config configuration) (string, error) {
+func ReplaceDomainPrefixInAbsoluteURL(req *goa.RequestData, replaceBy, relative string, config Configuration) (string, error) {
 	host := Host(req, config)
 	newHost, err := ReplaceDomainPrefix(host, replaceBy)
 	if err != nil {
