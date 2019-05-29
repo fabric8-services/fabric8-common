@@ -14,7 +14,7 @@ import (
 	"github.com/goadesign/goa/client"
 )
 
-// Doer is a wrapper interface for goa client Doer
+// HTTPDoer is a wrapper interface for goa client Doer
 type HTTPDoer interface {
 	client.Doer
 }
@@ -22,10 +22,6 @@ type HTTPDoer interface {
 // HTTPClient defines the Do method of the http client.
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
-}
-
-type configuration interface {
-	IsPostgresDeveloperModeEnabled() bool
 }
 
 // HTTPClientDoer implements HTTPDoer
@@ -43,9 +39,14 @@ func (d *HTTPClientDoer) Do(ctx context.Context, req *http.Request) (*http.Respo
 	return d.HTTPClient.Do(req)
 }
 
+// Configuration the minimum configuration to perform some URL transformation
+type Configuration interface {
+	IsPostgresDeveloperModeEnabled() bool
+}
+
 // Host returns the host from the given request if run in prod mode or if config is nil
 // and "auth.openshift.io" if run in dev mode
-func Host(req *goa.RequestData, config configuration) string {
+func Host(req *goa.RequestData, config Configuration) string {
 	if config != nil && config.IsPostgresDeveloperModeEnabled() {
 		return "auth.openshift.io"
 	}
